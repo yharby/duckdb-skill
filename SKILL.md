@@ -136,13 +136,22 @@ SELECT ST_CRS(geom) FROM 'data.parquet' LIMIT 1;
 -- Without spatial loaded, DESCRIBE still works but shows raw PROJJSON instead of the short code:
 -- → geom  geometry('{"$schema":"https://proj.org/schemas/v0.5/projjson.schema.json",...}')
 
--- Full CRS extraction from GeoParquet JSON (no spatial extension needed):
-SELECT
-    decode(value)::JSON->'columns'->'geom'->'crs'->'id'->'authority' AS authority,
-    decode(value)::JSON->'columns'->'geom'->'crs'->'id'->'code' AS code
-FROM parquet_kv_metadata('data.parquet')
-WHERE decode(key) = 'geo';
--- → "EPSG"  4326
+-- Full GeoParquet metadata inspection (no spatial extension needed):
+WITH kv AS (
+    SELECT file_name,
+           decode(key) AS key_str,
+           decode(value)::JSON AS geo_json
+    FROM parquet_kv_metadata('data/*.parquet')
+)
+SELECT file_name,
+       geo_json->>'$.columns.geometry.encoding' AS encoding,
+       geo_json->'$.columns.geometry.geometry_types' AS geom_types,
+       geo_json->'$.columns.geometry.bbox' AS bbox,
+       geo_json->'$.columns.geometry.crs.id.authority' AS crs_authority,
+       geo_json->'$.columns.geometry.crs.id.code' AS crs_code,
+       geo_json->>'$.primary_column' AS primary_column
+FROM kv WHERE key_str = 'geo';
+-- If crs is NULL → default is OGC:CRS84 (WGS84 lon/lat) per GeoParquet spec
 ```
 
 **Case 2: Native Parquet geometry (Format 2.11+ — no `geo` key)**
