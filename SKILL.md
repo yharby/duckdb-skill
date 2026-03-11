@@ -1,0 +1,423 @@
+---
+name: duckdb
+description: DuckDB v1.5 spatial/GIS data processing, geospatial SQL queries, file format conversions, raster analysis, and spatial tiling. Use when working with geographic data (shapefiles, GeoJSON, GeoPackage, OSM), spatial analysis (distance, area, intersections, spatial joins), coordinate transformations (CRS/EPSG), H3 hexagonal indexing, A5 pentagonal indexing, S2 spherical geometry (geography extension), raster processing (RASTER type, RT_* functions, GDAL), RaQuet raster-in-Parquet, Pyramid GeoParquet (Yosegi pipeline), native Parquet geometry (Format 2.11+), QUADBIN spatial index, DuckDB v1.5 core GEOMETRY type with CRS and shredding, VARIANT semi-structured type, DuckLake lakehouse, Overture Maps data (places, buildings, transportation, addresses, base, divisions), or when DuckDB is preferred over PostGIS for analytical/OLAP geospatial workloads. Also covers general DuckDB usage including Parquet, CSV, JSON, remote files via httpfs, ODBC scanner, read_duckdb(), friendly SQL (FROM-first, GROUP BY ALL, lambda syntax), geocoding patterns (H3 tiling, FTS/BM25, JACCARD), and querying external databases. Make sure to use this skill whenever the user mentions DuckDB, spatial SQL, GeoParquet, geometry processing, CRS transformations, H3/A5/S2 indexing, DuckLake, Overture Maps, vector similarity search with DuckDB, BM25/full-text search with DuckDB, or any geospatial data analysis task, even if they don't explicitly ask for DuckDB.
+---
+
+# DuckDB v1.5 Skill
+
+> DuckDB v1.5.0 "Variegata" — Released 2026-03-09.
+
+## How to Think: Discovery → Understanding → Analysis
+
+The most common mistake is jumping straight to queries. Instead, follow this workflow — it prevents wrong assumptions, bad joins, and wasted work.
+
+### Phase 1: Discover the Data
+
+Before writing any analytical query, find out what you're working with.
+
+**Local files — use glob patterns to find them:**
+
+```sql
+-- Find what files exist (Parquet, CSV, JSON, GeoJSON, etc.)
+FROM glob('data/*.parquet');
+FROM glob('**/*.csv');
+FROM glob('/path/to/project/**/*.geojson');
+```
+
+**Remote files — always load httpfs first, then probe:**
+
+```sql
+INSTALL httpfs; LOAD httpfs;
+-- For S3, also set the region:
+SET s3_region = 'us-west-2';
+
+-- Remote Parquet (only reads metadata, not full file)
+DESCRIBE FROM 'https://example.com/data.parquet';
+
+-- S3 / Azure / GCS
+DESCRIBE FROM 's3://bucket/path/file.parquet';
+
+-- Hive-partitioned datasets — check partition structure
+FROM parquet_metadata('s3://bucket/dataset/**/*.parquet') LIMIT 5;
+```
+
+**Databases — inspect what's available:**
+
+```sql
+-- Attached databases
+SHOW ALL TABLES;
+DESCRIBE table_name;
+
+-- External DuckDB files (new in v1.5 — no ATTACH needed)
+FROM read_duckdb('other.duckdb', table_name := 'my_table');
+
+-- External databases via ODBC (new in v1.5, requires INSTALL odbc_scanner)
+-- odbc_connect(conn_str) + odbc_query(conn, sql)
+```
+
+**Discover functions from DuckDB itself** — when unsure about a function signature:
+
+```sql
+-- Search for functions by name pattern
+SELECT function_name, parameters, return_type
+FROM duckdb_functions() WHERE function_name LIKE 'ST_Coverage%';
+
+-- List all extensions and their status
+FROM duckdb_extensions();
+
+-- List all settings
+FROM duckdb_settings() WHERE name LIKE '%geometry%';
+```
+
+**Geospatial files — check layers and metadata:**
+
+```sql
+LOAD spatial;
+SELECT * FROM ST_Read_Meta('data.gpkg');       -- layers, CRS, field schemas
+SELECT * FROM ST_Read_Meta('data.gdb');        -- ESRI File Geodatabase
+```
+
+### Phase 2: Understand the Shape
+
+Once you know WHAT files exist, understand their structure before querying.
+
+```sql
+-- Schema: column names and types (instant, reads only metadata)
+DESCRIBE FROM 'data.parquet';
+DESCRIBE FROM 'data.csv';
+
+-- Stats: min, max, approx_unique, avg, std, quartiles, nulls (scans full data)
+SUMMARIZE FROM 'data.parquet';
+SUMMARIZE FROM 'data.csv';
+
+-- Quick sample: see actual values (avoids scanning everything)
+FROM 'data.parquet' LIMIT 10;
+FROM 'data.csv' LIMIT 10;
+
+-- Row count estimate (fast for Parquet — reads metadata only)
+SELECT count(*) FROM 'data.parquet';
+
+-- For Parquet: row group structure, column statistics, file-level metadata
+FROM parquet_metadata('data.parquet');
+FROM parquet_schema('data.parquet');
+FROM parquet_kv_metadata('data.parquet');  -- GeoParquet metadata lives here
+```
+
+This phase is critical because:
+- DESCRIBE tells you column types — you'll know if geometry is WKB blob vs native GEOMETRY
+- SUMMARIZE reveals data quality issues (null percentages, unexpected ranges, cardinality)
+- A quick LIMIT sample shows actual values — field naming conventions, coordinate order, encoding
+- For spatial data: you need to know the CRS before any spatial operations
+
+### Phase 3: Analyze with Purpose
+
+Now that you understand the data, write targeted queries. Some principles:
+
+**Start narrow, expand.** Query a small subset first (WHERE + LIMIT), verify the logic, then remove the constraints.
+
+**Use FROM-first syntax** — it's more readable and DuckDB-idiomatic:
+
+```sql
+-- Instead of SELECT * FROM tbl WHERE ...
+FROM tbl SELECT col1, col2 WHERE x > 10;
+FROM tbl;  -- implicit SELECT *
+```
+
+**Use GROUP BY ALL** — let DuckDB infer grouping columns from context:
+
+```sql
+SELECT region, category, sum(amount), count()
+FROM sales
+GROUP BY ALL;  -- infers GROUP BY region, category
+```
+
+**Use SUMMARIZE on intermediate results** to verify transformations:
+
+```sql
+SUMMARIZE (
+    SELECT *, ST_Area_Spheroid(geom) AS area_m2
+    FROM parcels
+    WHERE area_m2 > 0
+);
+-- Check: are the area values reasonable? Any nulls introduced?
+```
+
+**Chain analysis steps** — use CTEs or CREATE OR REPLACE TABLE for iterative exploration:
+
+```sql
+CREATE OR REPLACE TABLE enriched AS
+    SELECT p.*, z.zone_name
+    FROM points p
+    JOIN zones z ON ST_Intersects(p.geom, z.geom);
+
+SUMMARIZE enriched;  -- verify the join didn't explode or lose rows
+```
+
+## v1.5 Breaking Changes — Must Know
+
+These trip up anyone using pre-v1.5 patterns:
+
+| Old pattern | v1.5+ correct way |
+|---|---|
+| `x -> x + 1` (arrow lambda) | `lambda x: x + 1` — arrow syntax is deprecated, errors in v2.0 |
+| Missing `geometry_always_xy` | `SET geometry_always_xy = true;` after `LOAD spatial` — v1.5 warns, v2.1 makes it default |
+| `INSTALL spatial` for GEOMETRY columns | Not needed — GEOMETRY is a core type in v1.5 (only INSTALL spatial for ST_* functions) |
+| `GEOMETRY('EPSG:4326')` without spatial | EPSG codes require spatial extension. Without it, use `GEOMETRY('OGC:CRS84')` or plain `GEOMETRY` |
+| Mixing CRS in spatial operations | v1.5 errors at bind time. Use consistent CRS or strip with `::GEOMETRY` |
+
+## Core GEOMETRY Type (no extension needed)
+
+```sql
+-- GEOMETRY is now a built-in type with optional CRS parameter
+CREATE TABLE t1 (g GEOMETRY);                    -- no CRS
+CREATE TABLE t2 (g GEOMETRY('OGC:CRS84'));       -- built-in CRS (no spatial needed)
+CREATE TABLE t3 (g GEOMETRY('EPSG:4326'));       -- requires LOAD spatial for EPSG codes
+
+-- Built-in functions (no LOAD spatial needed):
+ST_GeomFromWKB(blob)          -- WKB → geometry
+ST_AsWKB(geom)                -- geometry → WKB (alias: ST_AsBinary)
+ST_AsWKT(geom)                -- geometry → WKT (alias: ST_AsText)
+ST_Intersects_Extent(a, b)    -- bbox intersection
+a && b                        -- operator alias (uses row-group stats!)
+ST_CRS(geom)                  -- get CRS identifier
+ST_SetCRS(geom, 'OGC:CRS84') -- assign CRS (no coordinate transform)
+'POINT(0 0)'::GEOMETRY        -- cast from WKT
+```
+
+Subtypes: Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon, GeometryCollection. Vertices can have Z, M, or ZM dimensions.
+
+### CRS System
+
+```sql
+SELECT * FROM duckdb_coordinate_systems();  -- list all known CRSs (works without spatial)
+-- Built-in: OGC:CRS84, OGC:CRS83. Spatial ext adds 7,000+ EPSG codes.
+-- Accepts: AUTH:CODE, full PROJJSON, full WKT2-2019
+SET ignore_unknown_crs = true;  -- silently drop unknown CRS (works without spatial)
+```
+
+### Geometry Shredding (~3x compression)
+
+Automatic: when all geometries in a row group share the same subtype, DuckDB decomposes to STRUCT/LIST/DOUBLE with ALP compression. Control with `SET geometry_minimum_shredding_size = 30000` (default), `0` (always), `-1` (disable). Not shredded: GeometryCollection, empty geometries, mixed subtypes.
+
+## Spatial Recipes (requires `LOAD spatial`)
+
+### Session Setup
+
+Always start spatial work with:
+
+```sql
+INSTALL spatial; LOAD spatial;
+SET geometry_always_xy = true;  -- lon/lat = x/y consistently
+```
+
+### Spatial Joins (automatic R-tree, v1.3+)
+
+```sql
+-- Point-in-polygon (automatic R-tree, no index creation needed)
+SELECT p.*, z.zone_name
+FROM points p JOIN zones z ON ST_Intersects(p.geom, z.geom);
+
+-- Proximity join — ST_DWithin is fastest (triggers SPATIAL_JOIN operator)
+SELECT a.*, b.*
+FROM table_a a JOIN table_b b ON ST_DWithin(a.geom, b.geom, 1000);
+```
+
+Predicates that trigger SPATIAL_JOIN: `ST_Intersects`, `ST_Contains`, `ST_ContainsProperly`, `ST_Within`, `ST_Covers`, `ST_CoveredBy`, `ST_Overlaps`, `ST_Touches`, `ST_Crosses`, `ST_DWithin`.
+
+### CRS Transform
+
+```sql
+-- v1.5: 2-arg form (source CRS inferred from typed column)
+SELECT ST_Transform(geom, 'EPSG:4326') FROM tbl;
+
+-- Explicit source/target
+SELECT ST_Transform(geom, 'EPSG:4326', 'EPSG:3857') FROM tbl;
+```
+
+### Distance & Area
+
+```sql
+SELECT ST_Distance_Spheroid(ST_Point(-74.0, 40.7), ST_Point(-0.1, 51.5));  -- meters
+SELECT ST_Distance_Sphere(a.geom, b.geom);   -- haversine, meters
+SELECT ST_Area_Spheroid(geom);                -- m²
+SELECT ST_Length_Spheroid(geom);              -- meters
+-- ST_Point(x, y) = ST_Point(lon, lat) — x is always longitude
+```
+
+### Export
+
+```sql
+-- GeoParquet (default: v1 metadata)
+COPY tbl TO 'output.parquet' (FORMAT PARQUET);
+
+-- Max compatibility: GeoParquet v1 metadata + native Parquet geometry stats
+COPY tbl TO 'output.parquet' (FORMAT PARQUET, GEOPARQUET_VERSION 'BOTH');
+
+-- GDAL formats (read refs/gdal-formats.md for full reference)
+COPY tbl TO 'out.geojson' WITH (FORMAT GDAL, DRIVER 'GeoJSON');
+COPY tbl TO 'out.gpkg' WITH (FORMAT GDAL, DRIVER 'GPKG', LAYER_NAME 'my_layer');
+COPY tbl TO 'out.shp' WITH (FORMAT GDAL, DRIVER 'ESRI Shapefile');
+
+-- Hilbert-ordered for best spatial query performance
+COPY (SELECT * FROM tbl ORDER BY ST_Hilbert(geom)) TO 'sorted.parquet' (FORMAT PARQUET);
+```
+
+### R-Tree Index
+
+```sql
+-- Populate table FIRST, then create index (bulk load is 10x+ faster)
+CREATE INDEX idx ON tbl USING RTREE (geom);
+-- Auto-used with spatial predicates
+```
+
+## Friendly SQL Quick Reference
+
+```sql
+-- FROM-first
+FROM tbl;                                      -- implicit SELECT *
+FROM tbl SELECT col1, col2 WHERE x > 10;       -- FROM leads, then SELECT, then WHERE
+
+-- GROUP BY ALL / ORDER BY ALL
+SELECT region, count() FROM sales GROUP BY ALL ORDER BY ALL;
+
+-- Star expressions
+SELECT * EXCLUDE (internal_id, tmp) FROM tbl;
+SELECT * REPLACE (upper(name) AS name) FROM tbl;
+
+-- COLUMNS() — apply across matching columns
+SELECT min(COLUMNS('.*_price')) FROM products;
+SELECT COLUMNS(lambda c: c LIKE '%name%') FROM tbl;
+
+-- Lambda syntax (v1.5+ — arrow syntax deprecated)
+SELECT list_transform([1,2,3], lambda x: x * 2);
+SELECT list_filter(range(10), lambda x: x % 2 = 0);
+
+-- Dot operator chaining
+SELECT ('hello world').upper().split(' ').list_transform(lambda x: x.len());
+
+-- List comprehension
+SELECT [x * 2 FOR x IN [1, 2, 3]];
+
+-- ASOF join (time-series)
+SELECT * FROM trades ASOF JOIN quotes USING (symbol, timestamp);
+
+-- LATERAL join
+SELECT * FROM customers, LATERAL (SELECT * FROM orders WHERE orders.cust_id = customers.id LIMIT 3);
+
+-- POSITIONAL join (by row position)
+SELECT * FROM t1 POSITIONAL JOIN t2;
+
+-- Direct file queries (no CREATE TABLE needed)
+FROM 'data.csv';
+FROM 'data.parquet';
+FROM 'https://example.com/data.parquet';
+FROM 'data/**/*.parquet';  -- glob patterns
+
+-- Top-N aggregates (no window function needed)
+SELECT max(val, 3) FROM t GROUP BY grp;           -- top-3 per group
+SELECT arg_max(name, score, 3) FROM t GROUP BY grp;  -- names of top-3
+
+-- FILTER clause
+SELECT count() FILTER (status = 'active'), sum(amt) FILTER (year = 2025) FROM orders;
+
+-- PIVOT / UNPIVOT
+PIVOT sales ON product USING sum(amount);
+UNPIVOT monthly ON jan, feb, mar INTO NAME month VALUE amount;
+
+-- Variables
+SET VARIABLE my_threshold = 100;
+SELECT * FROM tbl WHERE val > getvariable('my_threshold');
+
+-- Trailing commas are OK
+SELECT col1, col2, FROM tbl;
+
+-- Percentage LIMIT
+SELECT * FROM tbl LIMIT 10%;
+```
+
+## VARIANT Type (new in v1.5)
+
+Typed binary semi-structured data. Better compression and query performance than JSON.
+
+```sql
+SELECT 42::VARIANT;
+SELECT {'name': 'Alice', 'age': 30}::VARIANT;
+SELECT variant_typeof(data) FROM tbl;  -- inspect type
+SELECT data.name FROM tbl;             -- dot notation
+-- Supported in Parquet (shredded), DuckLake, Delta Lake
+```
+
+## Key Extensions
+
+| Extension | Purpose | Install |
+|-----------|---------|---------|
+| `spatial` | ST_* functions, GDAL I/O | `INSTALL spatial; LOAD spatial;` |
+| `httpfs` | Remote files (S3/HTTP/GCS/Azure) | `INSTALL httpfs; LOAD httpfs;` |
+| `h3` | H3 hexagonal spatial index | `INSTALL h3 FROM community; LOAD h3;` |
+| `a5` | A5 pentagonal index | `INSTALL a5 FROM community; LOAD a5;` |
+| `geography` | S2 spherical geometry | community extension |
+| `ducklake` | Lakehouse (SQL catalog + Parquet) | `INSTALL ducklake; LOAD ducklake;` |
+| `odbc_scanner` | Query via ODBC (new in v1.5) | `INSTALL odbc_scanner; LOAD odbc_scanner;` |
+| `fts` | Full-text search (BM25) | `INSTALL fts; LOAD fts;` |
+| `vss` | Vector similarity search (HNSW) | `INSTALL vss; LOAD vss;` |
+
+## Common Pitfalls
+
+| Mistake | Fix |
+|---------|-----|
+| `x -> x + 1` | `lambda x: x + 1` |
+| Mixing CRS in spatial ops | Ensure consistent CRS or strip with `::GEOMETRY` |
+| Not setting `geometry_always_xy` | `SET geometry_always_xy = true;` after `LOAD spatial` |
+| `ST_Point(lat, lon)` | `ST_Point(lon, lat)` — x is longitude |
+| `INSTALL spatial` for GEOMETRY columns | Not needed in v1.5 — GEOMETRY is core |
+| `NOT ST_Intersects(a, b)` in JOINs | Causes OOM — use `NOT EXISTS (SELECT 1 ... WHERE ST_Intersects(...))` |
+| `ST_Transform` without `ST_SetCRS` | Output has no CRS metadata — always set CRS on input first |
+| FlatGeobuf WHERE ST_Intersects | Doesn't use FGB spatial index — use `ST_Read('f.fgb', spatial_filter_box=...)` |
+| Large geometries in GeoParquet | Default row group too big → full file download — use `ROW_GROUP_SIZE 2500` |
+| `ST_DWithin_Spheroid` in JOINs | No SPATIAL_JOIN optimization — use `ST_DWithin` instead |
+
+## Reference Files — Load on Demand
+
+Read these ONLY when the task requires the specific topic. Do not preload.
+
+**Geospatial formats and I/O:**
+- `refs/gdal-formats.md` — Read when: converting between formats (GPKG, Shapefile, GeoJSON, FlatGeobuf, KML, FileGDB), querying WFS/API endpoints.
+- `refs/overture-maps.md` — Read when: working with **Overture Maps** data (places, buildings, roads — includes S3/Azure paths, bbox filtering, GeoParquet metadata inspection).
+
+**Spatial function deep-dives (read `refs/spatial/index.md` first for the function index, then drill in):**
+- `refs/spatial/creation.md` — ST_Point, ST_MakeLine, ST_MakePolygon, ST_MakeEnvelope, etc.
+- `refs/spatial/predicates.md` — ST_Intersects, ST_Contains, ST_Within, ST_DWithin, etc.
+- `refs/spatial/measurement.md` — ST_Distance, ST_Area, ST_Length, ST_Perimeter (all variants)
+- `refs/spatial/transforms.md` — ST_Transform, ST_Buffer, ST_Simplify, ST_Union, ST_Intersection, etc.
+- `refs/spatial/accessors.md` — ST_X/Y/Z/M, ST_GeometryType, ST_SRID, ST_NPoints, etc.
+- `refs/spatial/conversion-io.md` — WKT/WKB/GeoJSON conversion functions
+- `refs/spatial/aggregates.md` — ST_Union_Agg, ST_Collect, ST_Intersection_Agg, etc.
+- `refs/spatial/linear-ref.md` — ST_LineInterpolatePoint, ST_LineLocatePoint, M-coordinates
+- `refs/spatial/coverage-tiling.md` — ST_CoverageUnion, ST_AsMVT, ST_TileEnvelope, etc.
+- `refs/spatial/macros.md` — convenience macros
+- `refs/spatial/table-functions.md` — ST_Read, ST_ReadSHP, ST_Read_Meta, ST_Drivers
+- `refs/spatial/core-v15.md` — v1.5-specific geometry type details, shredding, stats
+- `refs/spatial/a5-s2.md` — A5 + S2/Geography extension functions
+
+**Spatial indexing and tiling:**
+- `refs/spatial-indexes.md` — Read when: comparing H3 vs A5 vs S2 vs QUADBIN to choose the right spatial index. Overview and comparison tables.
+- `refs/h3.md` — Read when: specifically working with H3 hexagonal grid (60+ functions, resolution guide, patterns).
+- `refs/a5.md` — Read when: working with A5 pentagonal grid (11 functions, 31 resolution levels, equal-area indexing).
+
+**Specialized topics:**
+- `refs/ducklake.md` — Read when: working with DuckLake lakehouse (setup, time travel, partitioning, ACID, spatial support, VARIANT).
+- `refs/raster-tiling.md` — Read when: working with raster data, RASTER type, RT_* functions, RaQuet, Pyramid GeoParquet.
+- `refs/fts.md` — Read when: implementing full-text search (BM25 index creation, match_bm25 queries, stemming).
+- `refs/vss.md` — Read when: working with vector embeddings and similarity search (HNSW indexes, distance metrics).
+- `refs/wasm-patterns.md` — Read when: targeting DuckDB-WASM in the browser (extension loading, geocoding, MVT generation).
+- `refs/summarize.md` — Read when: needing SUMMARIZE command details beyond the basics above.
+- `refs/autocomplete.md` — Read when: building interactive SQL tools with auto-complete.
+
+## Configuration Quick Reference
+
+```sql
+SET geometry_always_xy = true;              -- lon/lat = x/y axis order
+SET geometry_minimum_shredding_size = 30000; -- geometry shredding threshold
+SET enable_geoparquet_conversion = true;    -- auto-decode GeoParquet (default: true)
+SET ignore_unknown_crs = false;             -- error on unknown CRS (default: false)
+```
