@@ -214,6 +214,7 @@ Some datasets store location as H3 BIGINT indices instead of geometry columns. H
 ```sql
 INSTALL h3 FROM community; LOAD h3;
 SELECT h3_index,
+       h3_h3_to_string(h3_index) AS h3_hex,  -- BIGINT → hex string (e.g., '820007fffffffff')
        h3_cell_to_lat(h3_index) AS lat,
        h3_cell_to_lng(h3_index) AS lon
 FROM 'data.parquet' LIMIT 5;
