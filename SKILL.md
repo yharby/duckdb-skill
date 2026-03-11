@@ -37,6 +37,11 @@ DESCRIBE FROM 'https://example.com/data.parquet';
 -- S3 / Azure / GCS
 DESCRIBE FROM 's3://bucket/path/file.parquet';
 
+-- S3 buckets with dots in the name (e.g., source.coop) need path-style URLs,
+-- because virtual-hosted style breaks SSL certificate validation:
+SET s3_url_style = 'path';
+DESCRIBE FROM 's3://us-west-2.opendata.source.coop/repo/data.parquet';
+
 -- Hive-partitioned datasets — check partition structure
 FROM parquet_metadata('s3://bucket/dataset/**/*.parquet') LIMIT 5;
 ```
@@ -200,6 +205,18 @@ FROM ST_Read_Meta('data.gpkg');
 
 -- For multi-layer files, inspect all layers:
 SELECT * FROM ST_Read_Meta('data.gdb');
+```
+
+**Case 5: H3/spatial-indexed data (no geometry column)**
+
+Some datasets store location as H3 BIGINT indices instead of geometry columns. H3 cells are always WGS84 — the CRS is implicit. Derive coordinates on the fly:
+
+```sql
+INSTALL h3 FROM community; LOAD h3;
+SELECT h3_index,
+       h3_cell_to_lat(h3_index) AS lat,
+       h3_cell_to_lng(h3_index) AS lon
+FROM 'data.parquet' LIMIT 5;
 ```
 
 ### Phase 3: Analyze with Purpose
