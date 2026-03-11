@@ -109,6 +109,90 @@ This phase is critical because:
 - A quick LIMIT sample shows actual values — field naming conventions, coordinate order, encoding
 - For spatial data: you need to know the CRS before any spatial operations
 
+### Detecting the CRS
+
+Knowing the CRS is essential before any spatial operation. The method depends on how geometry is stored:
+
+**Step 1: Identify the format.** Run DESCRIBE first — the column type tells you which case you're in:
+
+| Column type | Format | CRS location |
+|---|---|---|
+| `geometry('epsg:4326')` | GeoParquet or native Parquet geometry | CRS in column type (spatial resolves EPSG) |
+| `geometry` (no CRS) | Native Parquet geometry with no CRS, or CRS not resolved | Check `parquet_schema()` logical_type |
+| `blob` | Plain Parquet with WKB | No CRS embedded — must know from context |
+
+**Case 1: GeoParquet (Parquet with `geo` KV metadata)**
+
+```sql
+-- Quickest: DESCRIBE shows CRS in the column type (requires LOAD spatial for EPSG resolution)
+LOAD spatial;
+DESCRIBE FROM 'data.parquet';
+-- → geom  geometry('epsg:4326')
+
+-- Or use ST_CRS on a row
+SELECT ST_CRS(geom) FROM 'data.parquet' LIMIT 1;
+-- → 'EPSG:4326'
+
+-- Without spatial loaded, DESCRIBE still works but shows raw PROJJSON instead of the short code:
+-- → geom  geometry('{"$schema":"https://proj.org/schemas/v0.5/projjson.schema.json",...}')
+
+-- Full CRS extraction from GeoParquet JSON (no spatial extension needed):
+SELECT
+    decode(value)::JSON->'columns'->'geom'->'crs'->'id'->'authority' AS authority,
+    decode(value)::JSON->'columns'->'geom'->'crs'->'id'->'code' AS code
+FROM parquet_kv_metadata('data.parquet')
+WHERE decode(key) = 'geo';
+-- → "EPSG"  4326
+```
+
+**Case 2: Native Parquet geometry (Format 2.11+ — no `geo` key)**
+
+These files store CRS in the Parquet schema's logical type, not in KV metadata. DuckDB reads it automatically.
+
+```sql
+-- DESCRIBE shows the resolved CRS when spatial can resolve it
+LOAD spatial;
+DESCRIBE FROM 'native_geo.parquet';
+-- → geometry  geometry('epsg:5070')    ← CRS resolved
+-- → geometry  geometry                 ← CRS not resolved or absent
+
+-- Check the raw Parquet logical type to see how CRS is encoded
+SELECT name, logical_type
+FROM parquet_schema('native_geo.parquet')
+WHERE logical_type LIKE 'GeometryType%';
+-- → geometry  GeometryType(crs=srid:5070)     ← SRID-based CRS
+-- → geometry  GeometryType(crs=<projjson>)     ← full PROJJSON CRS
+-- → geometry  GeometryType(crs=<null>)         ← no CRS specified
+```
+
+**Case 3: Plain Parquet (WKB blob, no geometry metadata)**
+
+```sql
+-- DESCRIBE shows blob type — no CRS information available
+DESCRIBE FROM 'data.parquet';
+-- → wkb_geom  blob
+
+-- No CRS is embedded. You must know the CRS from documentation or context,
+-- then assign it after converting to GEOMETRY:
+LOAD spatial;
+SELECT ST_SetCRS(ST_GeomFromWKB(wkb_geom), 'EPSG:4326') FROM 'data.parquet';
+```
+
+**Case 4: GDAL-supported formats (GPKG, Shapefile, GDB, FlatGeobuf, GeoJSON, KML)**
+
+```sql
+-- Use ST_Read_Meta to get CRS from any GDAL-readable format
+LOAD spatial;
+SELECT
+    layers[1].geometry_fields[1].crs.auth_name AS authority,
+    layers[1].geometry_fields[1].crs.auth_code AS code
+FROM ST_Read_Meta('data.gpkg');
+-- → EPSG  4326
+
+-- For multi-layer files, inspect all layers:
+SELECT * FROM ST_Read_Meta('data.gdb');
+```
+
 ### Phase 3: Analyze with Purpose
 
 Now that you understand the data, write targeted queries. Some principles:
