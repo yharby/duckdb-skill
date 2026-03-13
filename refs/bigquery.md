@@ -232,7 +232,8 @@ SELECT * FROM bigquery_query(
 | `grpc_endpoint`   | VARCHAR   | Custom BigQuery Storage gRPC endpoint                   |
 
 **When to use**:
-- `bigquery_scan`: Direct table reads, simple queries, best performance
+- `bigquery_scan`: Direct table reads, simple queries, good default
+- `bigquery_arrow_scan`: Large table reads where throughput matters (Arrow-optimized path)
 - `bigquery_query`: Views, external tables, complex GoogleSQL, custom logic
 
 ### `bigquery_execute` — Run Arbitrary GoogleSQL
@@ -296,6 +297,24 @@ SELECT * FROM bigquery_jobs('bq', jobId='job_abc123...');
 | `maxCreationTime` | TIMESTAMP | Filter jobs created before this time              |
 | `stateFilter`     | VARCHAR   | Filter by state: `PENDING`, `RUNNING`, `DONE`     |
 | `parentJobId`     | VARCHAR   | Show child jobs of a parent job                   |
+
+### `bigquery_arrow_scan` — Optimized Arrow-Based Scanning
+
+Uses the Arrow-native scan path for improved performance over the default `bigquery_scan`. Same parameters as `bigquery_scan`.
+
+```sql
+-- Arrow-optimized scan (faster for large tables)
+SELECT * FROM bigquery_arrow_scan('my_gcp_project.dataset.large_table');
+
+-- With filter pushdown
+SELECT * FROM bigquery_arrow_scan(
+    'my_gcp_project.dataset.events',
+    filter='date >= "2024-01-01"',
+    billing_project='my_gcp_project'
+);
+```
+
+**When to use**: Prefer `bigquery_arrow_scan` for large reads where throughput matters. Falls back gracefully if the Arrow path isn't available.
 
 ### `bigquery_clear_cache` — Refresh Schema Cache
 
@@ -361,7 +380,9 @@ SELECT name, ST_Transform(geom, 'EPSG:4326')
 FROM local_table_with_utm_geom;
 ```
 
-**Note**: Pre-v1.5 required `LOAD spatial; SET bq_geography_as_geometry = true;`. This is no longer needed.
+**v1.5 migration**: Pre-v1.5 required `LOAD spatial; SET bq_geography_as_geometry = true;` — both are **no longer needed**. DuckDB v1.5 moved `GEOMETRY` into core, so BigQuery `GEOGRAPHY` columns map to `GEOMETRY` automatically. The `bq_geography_as_geometry` setting is effectively deprecated.
+
+**Axis order warning**: DuckDB v1.5 introduces `SET geometry_always_xy = true` to enforce consistent lon,lat (X,Y) axis order. Set this when mixing BigQuery geometries with other spatial sources to avoid subtle coordinate-flip bugs. In DuckDB v2.0, the old behavior becomes an error.
 
 ## Experimental: Partitioning, Clustering, Table Options
 
@@ -381,7 +402,7 @@ PARTITION BY DATE(ts)
 CLUSTER BY user_id, event_type
 OPTIONS (
     description="User events table",
-    expiration_timestamp=TIMESTAMP "2025-12-31 00:00:00 UTC"
+    expiration_timestamp=TIMESTAMP "2026-12-31 00:00:00 UTC"
 );
 
 -- Pseudo-column partitioning
@@ -424,6 +445,12 @@ SET bq_max_read_streams = 0;  -- default: 0
 
 -- Arrow compression for Storage Read API
 SET bq_arrow_compression = 'ZSTD';  -- options: UNSPECIFIED, LZ4_FRAME, ZSTD
+
+-- Incubating scan: experimental high-performance scan path (v1.5+)
+SET bq_experimental_use_incubating_scan = true;  -- default: false
+
+-- Default geographic location for query execution
+SET bq_default_location = 'US';  -- default: unset (auto-detected)
 ```
 
 ## Limitations
@@ -499,6 +526,44 @@ CREATE TABLE local_summary AS
 
 -- Now work with local_summary in DuckDB
 SUMMARIZE local_summary;
+```
+
+## Performance Tuning
+
+### Parallel Read Streams
+
+By default, `bq_max_read_streams = 0` auto-matches DuckDB thread count. For maximum throughput on large tables, disable insertion order preservation:
+
+```sql
+SET preserve_insertion_order = FALSE;
+SET bq_max_read_streams = 0;  -- auto, or set explicit count
+
+SELECT * FROM bigquery_scan('project.dataset.large_table');
+```
+
+Without `preserve_insertion_order = FALSE`, parallelization is limited because rows must arrive in order.
+
+### Incubating Scan (Experimental, v1.5+)
+
+The incubating scan path offers significantly improved performance for large reads by addressing stream imbalance issues in the default scan:
+
+```sql
+SET bq_experimental_use_incubating_scan = true;
+
+-- Combine with parallel streams for best throughput
+SET preserve_insertion_order = FALSE;
+SELECT * FROM bigquery_scan('project.dataset.large_table');
+```
+
+**Known limitation**: The default scan can exhibit stream imbalance where one stream receives ~70% of rows. The incubating scan is designed to address this. Enable it for large analytical workloads; for small queries, the default scan is fine.
+
+### Compression
+
+Reduce network transfer size with Arrow compression:
+
+```sql
+SET bq_arrow_compression = 'ZSTD';   -- best ratio (default)
+-- SET bq_arrow_compression = 'LZ4_FRAME';  -- faster compression/decompression
 ```
 
 ## Cost Optimization Tips
