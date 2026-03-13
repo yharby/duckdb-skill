@@ -264,6 +264,28 @@ CREATE OR REPLACE TABLE enriched AS
 SUMMARIZE enriched;  -- verify the join didn't explode or lose rows
 ```
 
+### When Queries Fail or Perform Poorly: Use EXPLAIN ANALYZE
+
+If a query is **complex, slow, or failing unexpectedly**, use `EXPLAIN ANALYZE` to understand what's happening. It shows the query plan with runtime metrics — actual row counts, estimated cardinalities, and timing for each operation.
+
+```sql
+EXPLAIN ANALYZE SELECT ... ;
+```
+
+**When to use it:**
+- Query runs slower than expected
+- Getting unexpected results or row counts
+- Complex joins or subqueries that you want to verify
+- Need to see if indexes or spatial joins are being used
+- Want to break down a complex query into analyzable parts
+
+The output shows a tree of operations with:
+- **EC (Estimated Cardinality)**: what DuckDB predicted
+- **Actual cardinality**: what actually happened
+- **Timing**: cumulative wall-clock time per operator
+
+If estimated vs actual cardinalities are far off, or if certain operations dominate the time, that tells you where to focus optimization. For deep-dive details and examples, read `refs/explain-analyze.md`.
+
 ## v1.5 Breaking Changes — Must Know
 
 These trip up anyone using pre-v1.5 patterns:
@@ -528,6 +550,7 @@ Read these ONLY when the task requires the specific topic. Do not preload.
 - `refs/wasm-patterns.md` — Read when: targeting DuckDB-WASM in the browser (extension loading, geocoding, MVT generation).
 - `refs/summarize.md` — Read when: needing SUMMARIZE command details beyond the basics above.
 - `refs/autocomplete.md` — Read when: building interactive SQL tools with auto-complete.
+- `refs/explain-analyze.md` — Read when: queries are complex or failing repeatedly, you need to understand query execution plans, diagnose performance issues, or break down complex queries into analyzable parts. Use EXPLAIN ANALYZE to see runtime metrics, actual vs estimated cardinalities, and operator timing.
 
 ## Configuration Quick Reference
 

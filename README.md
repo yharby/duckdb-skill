@@ -6,6 +6,7 @@ A comprehensive Claude Code skill for DuckDB v1.5 — spatial/GIS, GeoParquet, O
 
 - **DuckDB v1.5.0** core features, breaking changes, and Friendly SQL
 - **Discovery workflow** — Phase 1 (discover), Phase 2 (understand), Phase 3 (analyze)
+- **Query profiling** — EXPLAIN ANALYZE for troubleshooting complex or failing queries
 - **CRS detection** — GeoParquet metadata, plain Parquet WKB, GDAL-format files
 - **Spatial** — 155+ ST_* functions, CRS, geometry shredding, R-Tree indexes
 - **Core GEOMETRY type** — built-in (no extension) WKT cast, `&&` operator, ST_CRS, ST_SetCRS, ST_GeomFromWKB
@@ -16,6 +17,7 @@ A comprehensive Claude Code skill for DuckDB v1.5 — spatial/GIS, GeoParquet, O
 - **Extensions** — FTS (BM25), VSS (HNSW vector search), GDAL formats, WASM patterns
 - **Raster** — RASTER type, RaQuet, Pyramid GeoParquet
 - **VARIANT type** — semi-structured data with typed binary representation
+- **Python API** — connection patterns, Arrow export, v1.5 migration guide
 - **Common pitfalls** — sourced from real GitHub issues
 
 ## Install
@@ -73,7 +75,9 @@ duckdb-skill/
     ├── vss.md                  # Vector similarity (HNSW)
     ├── wasm-patterns.md        # DuckDB-WASM browser patterns
     ├── summarize.md            # SUMMARIZE command details
-    └── autocomplete.md         # SQL auto-complete
+    ├── autocomplete.md         # SQL auto-complete
+    ├── explain-analyze.md      # Query profiling and performance diagnostics
+    └── python-api.md           # Python API patterns and v1.5 migration
 ```
 
 ## License
