@@ -1,6 +1,8 @@
-# DuckDB Skill for Claude Code
+# DuckDB Skill for AI Agents
 
-A comprehensive Claude Code skill for DuckDB v1.5 — spatial/GIS, GeoParquet, Overture Maps, DuckLake, and more.
+A comprehensive Agent Skill for DuckDB v1.5 — spatial/GIS, GeoParquet, Overture Maps, DuckLake, and more.
+
+**Compatible with 30+ AI coding tools** via the [AgentSkills.io](https://agentskills.io) open standard.
 
 ## What's Included
 
