@@ -1,6 +1,6 @@
 ---
 name: duckdb
-description: DuckDB v1.5 spatial/GIS data processing, geospatial SQL queries, file format conversions, raster analysis, and spatial tiling. Use when working with geographic data (shapefiles, GeoJSON, GeoPackage, OSM), spatial analysis (distance, area, intersections, spatial joins), coordinate transformations (CRS/EPSG), H3 hexagonal indexing, A5 pentagonal indexing, S2 spherical geometry (geography extension), raster processing (RASTER type, RT_* functions, GDAL), RaQuet raster-in-Parquet, Pyramid GeoParquet (Yosegi pipeline), native Parquet geometry (Format 2.11+), QUADBIN spatial index, DuckDB v1.5 core GEOMETRY type with CRS and shredding, VARIANT semi-structured type, DuckLake lakehouse, Overture Maps data (places, buildings, transportation, addresses, base, divisions), or when DuckDB is preferred over PostGIS for analytical/OLAP geospatial workloads. Also covers general DuckDB usage including Parquet, CSV, JSON, remote files via httpfs, ODBC scanner, read_duckdb(), friendly SQL (FROM-first, GROUP BY ALL, lambda syntax), geocoding patterns (H3 tiling, FTS/BM25, JACCARD), and querying external databases. Make sure to use this skill whenever the user mentions DuckDB, spatial SQL, GeoParquet, geometry processing, CRS transformations, H3/A5/S2 indexing, DuckLake, Overture Maps, vector similarity search with DuckDB, BM25/full-text search with DuckDB, or any geospatial data analysis task, even if they don't explicitly ask for DuckDB.
+description: DuckDB v1.5 spatial/GIS data processing, geospatial SQL queries, file format conversions, raster analysis, and spatial tiling. Use when working with geographic data (shapefiles, GeoJSON, GeoPackage, OSM), spatial analysis (distance, area, intersections, spatial joins), coordinate transformations (CRS/EPSG), H3 hexagonal indexing, A5 pentagonal indexing, S2 spherical geometry (geography extension), raster processing (RASTER type, RT_* functions, GDAL), RaQuet raster-in-Parquet, Pyramid GeoParquet (Yosegi pipeline), native Parquet geometry (Format 2.11+), QUADBIN spatial index, DuckDB v1.5 core GEOMETRY type with CRS and shredding, VARIANT semi-structured type, DuckLake lakehouse, Overture Maps data (places, buildings, transportation, addresses, base, divisions), or when DuckDB is preferred over PostGIS for analytical/OLAP geospatial workloads. Also covers general DuckDB usage including Parquet, CSV, JSON, remote files via httpfs, ODBC scanner, read_duckdb(), friendly SQL (FROM-first, GROUP BY ALL, lambda syntax), geocoding patterns (H3 tiling, FTS/BM25, JACCARD), and querying external databases. Make sure to use this skill whenever the user mentions DuckDB, spatial SQL, GeoParquet, geometry processing, CRS transformations, H3/A5/S2 indexing, DuckLake, Overture Maps, Apache Iceberg tables, Iceberg catalogs, iceberg_scan, vector similarity search with DuckDB, BM25/full-text search with DuckDB, or any geospatial data analysis task, even if they don't explicitly ask for DuckDB.
 ---
 
 # DuckDB v1.5 Skill
@@ -492,6 +492,7 @@ SELECT data.name FROM tbl;             -- dot notation
 | `a5` | A5 pentagonal index | `INSTALL a5 FROM community; LOAD a5;` |
 | `geography` | S2 spherical geometry | community extension |
 | `bigquery` | Connect to Google BigQuery | `FORCE INSTALL bigquery FROM community; LOAD bigquery;` |
+| `iceberg` | Apache Iceberg tables (read/write, catalogs) | `INSTALL iceberg; LOAD iceberg;` |
 | `ducklake` | Lakehouse (SQL catalog + Parquet) | `INSTALL ducklake; LOAD ducklake;` |
 | `odbc_scanner` | Query via ODBC (new in v1.5) | `INSTALL odbc_scanner; LOAD odbc_scanner;` |
 | `fts` | Full-text search (BM25) | `INSTALL fts; LOAD fts;` |
@@ -545,6 +546,7 @@ Read these ONLY when the task requires the specific topic. Do not preload.
 
 **External database connectors:**
 - `refs/bigquery.md` — Read when: connecting to Google BigQuery, querying BigQuery tables from DuckDB, working with BigQuery GEOGRAPHY columns, using bigquery_scan/bigquery_query functions, managing BigQuery datasets, or accessing public BigQuery datasets. Covers authentication (DuckDB Secrets, service accounts, gcloud), DDL operations, geometry mapping, and cost optimization.
+- `refs/iceberg.md` — Read when: working with Apache Iceberg tables, attaching to Iceberg REST catalogs (Polaris, Lakekeeper, AWS Glue, S3 Tables, BigLake), reading/writing Iceberg tables, time travel via snapshots, partition pruning, schema evolution, or using iceberg_scan/iceberg_metadata/iceberg_snapshots functions.
 
 **Specialized topics:**
 - `refs/ducklake.md` — Read when: working with DuckLake lakehouse (setup, time travel, partitioning, ACID, spatial support, VARIANT).
