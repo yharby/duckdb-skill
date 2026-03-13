@@ -232,9 +232,9 @@ SELECT * FROM bigquery_query(
 | `grpc_endpoint`   | VARCHAR   | Custom BigQuery Storage gRPC endpoint                   |
 
 **When to use**:
-- `bigquery_scan`: Direct table reads, simple queries, good default
-- `bigquery_arrow_scan`: Large table reads where throughput matters (Arrow-optimized path)
-- `bigquery_query`: Views, external tables, complex GoogleSQL, custom logic
+- `bigquery_scan`: Direct table reads, simple queries, good default. GEOGRAPHY → GEOMETRY auto-mapping.
+- `bigquery_arrow_scan`: Large table reads where throughput matters (Arrow-optimized path). GEOGRAPHY → GEOMETRY auto-mapping.
+- `bigquery_query`: Views, external tables, complex GoogleSQL, custom logic. **Note**: returns GEOGRAPHY as VARCHAR (WKT), not GEOMETRY.
 
 ### `bigquery_execute` — Run Arbitrary GoogleSQL
 
@@ -357,15 +357,20 @@ DROP SCHEMA IF EXISTS bq.my_dataset;
 
 ## Working with Geometries
 
-BigQuery `GEOGRAPHY` columns map to DuckDB `GEOMETRY` (v1.5+). No special settings needed.
+BigQuery `GEOGRAPHY` columns map to DuckDB `GEOMETRY('OGC:CRS84')` automatically via `bigquery_scan` and `ATTACH`. No special settings needed.
+
+**Important**: `bigquery_query` returns GEOGRAPHY as **VARCHAR** (WKT text), not GEOMETRY. Use `bigquery_scan` or ATTACH for native geometry mapping.
 
 ```sql
-ATTACH 'project=my_gcp_project' AS bq (TYPE bigquery);
+ATTACH 'project=my_gcp_project dataset=my_dataset' AS bq (TYPE bigquery);
 
--- Read GEOGRAPHY as GEOMETRY
+-- Read GEOGRAPHY as GEOMETRY (via ATTACH or bigquery_scan)
 SELECT name, geo_column, typeof(geo_column)
-FROM bq.dataset.geo_table;
--- geo_column type: GEOMETRY
+FROM bq.my_dataset.geo_table;
+-- geo_column type: GEOMETRY('OGC:CRS84')
+
+-- bigquery_query returns GEOGRAPHY as VARCHAR (WKT), not GEOMETRY
+-- SELECT typeof(geom) FROM bigquery_query(...) → VARCHAR
 
 -- Write GEOMETRY to GEOGRAPHY
 INSERT INTO bq.dataset.geo_table VALUES
@@ -465,21 +470,27 @@ SET bq_default_location = 'US';  -- default: unset (auto-detected)
 
 4. **Primary/Foreign Keys**: BigQuery's PK/FK constraints differ from traditional RDBMS. This extension does **not** support them.
 
+5. **`bigquery_query` returns GEOGRAPHY as VARCHAR**: Only `bigquery_scan`, `bigquery_arrow_scan`, and ATTACH map GEOGRAPHY to GEOMETRY. `bigquery_query` returns WKT text. Cast manually if needed: `ST_GeomFromText(col)`.
+
+6. **ATTACH to large public projects**: Attaching to `bigquery-public-data` without `dataset=` fails because it tries to enumerate all datasets. Always specify `dataset=` for public projects.
+
 ## Reading Public Datasets
 
 Specify your project as `billing_project`:
 
 ```sql
--- Query a public dataset
+-- Query a public dataset via bigquery_scan (simplest)
 SELECT * FROM bigquery_scan(
     'bigquery-public-data.geo_us_boundaries.states',
     billing_project='my_gcp_project'
 );
 
--- Or with ATTACH
-ATTACH 'project=bigquery-public-data billing_project=my_gcp_project' AS pub (TYPE bigquery, READ_ONLY);
+-- ATTACH to a specific dataset (must specify dataset= for public data)
+ATTACH 'project=bigquery-public-data dataset=geo_us_boundaries billing_project=my_gcp_project' AS pub (TYPE bigquery, READ_ONLY);
 SELECT * FROM pub.geo_us_boundaries.states;
 ```
+
+**Gotcha**: Do NOT ATTACH to the entire `bigquery-public-data` project without `dataset=` — it will try to enumerate hundreds of datasets and fail with linked-dataset errors. Always specify `dataset=` when attaching to public projects.
 
 ## Common Patterns
 
