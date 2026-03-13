@@ -18,6 +18,7 @@ A comprehensive Claude Code skill for DuckDB v1.5 — spatial/GIS, GeoParquet, O
 - **Raster** — RASTER type, RaQuet, Pyramid GeoParquet
 - **VARIANT type** — semi-structured data with typed binary representation
 - **Python API** — connection patterns, Arrow export, v1.5 migration guide
+- **BigQuery connector** — query Google BigQuery from DuckDB, GEOGRAPHY/GEOMETRY mapping, authentication
 - **Common pitfalls** — sourced from real GitHub issues
 
 ## Install
@@ -77,6 +78,7 @@ duckdb-skill/
     ├── summarize.md            # SUMMARIZE command details
     ├── autocomplete.md         # SQL auto-complete
     ├── explain-analyze.md      # Query profiling and performance diagnostics
+    ├── bigquery.md             # Google BigQuery connector (community extension)
     └── python-api.md           # Python API patterns and v1.5 migration
 ```
 

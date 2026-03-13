@@ -491,6 +491,7 @@ SELECT data.name FROM tbl;             -- dot notation
 | `h3` | H3 hexagonal spatial index | `INSTALL h3 FROM community; LOAD h3;` |
 | `a5` | A5 pentagonal index | `INSTALL a5 FROM community; LOAD a5;` |
 | `geography` | S2 spherical geometry | community extension |
+| `bigquery` | Connect to Google BigQuery | `FORCE INSTALL bigquery FROM community; LOAD bigquery;` |
 | `ducklake` | Lakehouse (SQL catalog + Parquet) | `INSTALL ducklake; LOAD ducklake;` |
 | `odbc_scanner` | Query via ODBC (new in v1.5) | `INSTALL odbc_scanner; LOAD odbc_scanner;` |
 | `fts` | Full-text search (BM25) | `INSTALL fts; LOAD fts;` |
@@ -542,6 +543,9 @@ Read these ONLY when the task requires the specific topic. Do not preload.
 **Python API:**
 - `refs/python-api.md` — Read when: using DuckDB from Python, Arrow export, `fetch_arrow_table()` v1.5 bug, connection setup, GeoParquet writing, result fetching with geometry columns, v1.5 migration patterns.
 
+**External database connectors:**
+- `refs/bigquery.md` — Read when: connecting to Google BigQuery, querying BigQuery tables from DuckDB, working with BigQuery GEOGRAPHY columns, using bigquery_scan/bigquery_query functions, managing BigQuery datasets, or accessing public BigQuery datasets. Covers authentication (DuckDB Secrets, service accounts, gcloud), DDL operations, geometry mapping, and cost optimization.
+
 **Specialized topics:**
 - `refs/ducklake.md` — Read when: working with DuckLake lakehouse (setup, time travel, partitioning, ACID, spatial support, VARIANT).
 - `refs/raster-tiling.md` — Read when: working with raster data, RASTER type, RT_* functions, RaQuet, Pyramid GeoParquet.
@@ -551,6 +555,32 @@ Read these ONLY when the task requires the specific topic. Do not preload.
 - `refs/summarize.md` — Read when: needing SUMMARIZE command details beyond the basics above.
 - `refs/autocomplete.md` — Read when: building interactive SQL tools with auto-complete.
 - `refs/explain-analyze.md` — Read when: queries are complex or failing repeatedly, you need to understand query execution plans, diagnose performance issues, or break down complex queries into analyzable parts. Use EXPLAIN ANALYZE to see runtime metrics, actual vs estimated cardinalities, and operator timing.
+
+## Troubleshooting Extension Installation
+
+If a standard extension installation fails or you encounter errors related to outdated functionality, try installing from the `core_nightly` repository to get the latest development build:
+
+```sql
+-- Standard installation (try this first)
+INSTALL extension_name;
+LOAD extension_name;
+
+-- If the above fails or you encounter version-related errors:
+FORCE INSTALL extension_name FROM core_nightly;
+LOAD extension_name;
+
+-- Example: DuckLake with latest features
+FORCE INSTALL ducklake FROM core_nightly;
+LOAD ducklake;
+```
+
+**When to use `core_nightly`:**
+- Standard installation fails with compatibility errors
+- You need features not yet in the stable release
+- Documentation mentions functionality you don't have
+- Error messages indicate version mismatches
+
+**Note**: `FORCE INSTALL` overwrites any existing installation. Nightly builds are development versions and may be less stable than official releases.
 
 ## Configuration Quick Reference
 
