@@ -275,6 +275,8 @@ These trip up anyone using pre-v1.5 patterns:
 | `INSTALL spatial` for GEOMETRY columns | Not needed — GEOMETRY is a core type in v1.5 (only INSTALL spatial for ST_* functions) |
 | `GEOMETRY('EPSG:4326')` without spatial | EPSG codes require spatial extension. Without it, use `GEOMETRY('OGC:CRS84')` or plain `GEOMETRY` |
 | Mixing CRS in spatial operations | v1.5 errors at bind time. Use consistent CRS or strip with `::GEOMETRY` |
+| `.fetch_arrow_table()` with parquet geometry | Use `.arrow().read_all()` — crashes with `TransactionContext` error (see `refs/python-api.md`) |
+| `TRY_CAST(x AS GEOMETRY)` | `TRY(ST_GeomFromText(x))` — TRY_CAST broken for GEOMETRY in v1.5 |
 
 ## Core GEOMETRY Type (no extension needed)
 
@@ -514,6 +516,9 @@ Read these ONLY when the task requires the specific topic. Do not preload.
 - `refs/spatial-indexes.md` — Read when: comparing H3 vs A5 vs S2 vs QUADBIN to choose the right spatial index. Overview and comparison tables.
 - `refs/h3.md` — Read when: specifically working with H3 hexagonal grid (60+ functions, resolution guide, patterns).
 - `refs/a5.md` — Read when: working with A5 pentagonal grid (11 functions, 31 resolution levels, equal-area indexing).
+
+**Python API:**
+- `refs/python-api.md` — Read when: using DuckDB from Python, Arrow export, `fetch_arrow_table()` v1.5 bug, connection setup, GeoParquet writing, result fetching with geometry columns, v1.5 migration patterns.
 
 **Specialized topics:**
 - `refs/ducklake.md` — Read when: working with DuckLake lakehouse (setup, time travel, partitioning, ACID, spatial support, VARIANT).
