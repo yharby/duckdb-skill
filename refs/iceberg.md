@@ -235,6 +235,13 @@ ATTACH 'account_id' AS glue_catalog (
 INSTALL aws; INSTALL httpfs; INSTALL iceberg;
 LOAD aws; LOAD httpfs; LOAD iceberg;
 
+-- Best practice: use credential chain (no persistent access keys)
+CREATE SECRET (
+    TYPE s3,
+    PROVIDER credential_chain
+);
+
+-- Or with STS role assumption
 CREATE SECRET (
     TYPE s3,
     PROVIDER credential_chain,
@@ -243,20 +250,65 @@ CREATE SECRET (
     REGION 'us-east-2'
 );
 
--- Method 1: Explicit endpoint
+-- Method 1: Simplified with ENDPOINT_TYPE (recommended, v1.5+)
+ATTACH 'ACCOUNT_ID' AS glue_catalog (
+    TYPE iceberg,
+    ENDPOINT_TYPE 'GLUE'
+);
+
+-- Method 2: Explicit endpoint
 ATTACH 'ACCOUNT_ID' AS glue_catalog (
     TYPE iceberg,
     ENDPOINT 'glue.us-east-2.amazonaws.com/iceberg',
     AUTHORIZATION_TYPE 'sigv4'
 );
 
--- Method 2: Simplified with ENDPOINT_TYPE
-ATTACH 'ACCOUNT_ID' AS glue_catalog (
+-- ATTACH OR REPLACE also works
+ATTACH OR REPLACE 'ACCOUNT_ID' AS glue_catalog (
     TYPE iceberg,
-    ENDPOINT_TYPE 'glue'
+    ENDPOINT_TYPE 'GLUE'
 );
 
 SELECT count(*) FROM glue_catalog.my_namespace.my_table;
+```
+
+#### Glue Full CRUD Example (Python)
+
+```python
+import duckdb, os
+
+cn = duckdb.connect()
+cn.execute("INSTALL iceberg; INSTALL aws; LOAD iceberg; LOAD aws;")
+cn.execute("CREATE SECRET (TYPE s3, PROVIDER credential_chain)")
+cn.execute(f"""
+    ATTACH OR REPLACE '{os.getenv("AWS_ACCOUNT_ID")}' AS glue_ice (
+        TYPE ICEBERG,
+        ENDPOINT_TYPE 'GLUE'
+    )
+""")
+
+# CTAS with WITH location (v1.5+ — required for Glue to know where to store data)
+cn.execute(f"""
+    CREATE TABLE glue_ice.my_db.my_table
+    WITH ('location' = 's3://my-bucket/iceberg/my_table')
+    AS SELECT 1 AS id, 'foo' AS name
+       UNION ALL
+       SELECT 2 AS id, 'bar' AS name
+""")
+
+# Full CRUD
+cn.execute(f"DELETE FROM glue_ice.my_db.my_table WHERE id = 1")
+cn.execute(f"UPDATE glue_ice.my_db.my_table SET name = 'baz' WHERE id = 2")
+cn.execute(f"INSERT INTO glue_ice.my_db.my_table VALUES (3, 'quack')")
+
+cn.sql(f"SELECT * FROM glue_ice.my_db.my_table").show()
+# ┌───────┬─────────┐
+# │  id   │  name   │
+# │ int32 │ varchar │
+# ├───────┼─────────┤
+# │     2 │ baz     │
+# │     3 │ quack   │
+# └───────┴─────────┘
 ```
 
 ### Amazon S3 Tables
@@ -349,6 +401,22 @@ CREATE TABLE iceberg_catalog.default.my_table (
 );
 ```
 
+### CREATE TABLE AS (CTAS)
+
+```sql
+-- v1.5.0+: CTAS with WITH location (essential for Glue catalogs)
+CREATE TABLE iceberg_catalog.default.my_table
+WITH ('location' = 's3://bucket/path/to/data')
+AS SELECT * FROM read_parquet('local_data.parquet');
+
+-- CTAS with inline data
+CREATE TABLE iceberg_catalog.default.my_table
+WITH ('location' = 's3://bucket/path/to/data')
+AS SELECT 1 AS id, 'hello' AS name;
+```
+
+**Note**: The `location` property in WITH is required for Glue catalogs so they know where to store data files on S3. DuckDB handles the stage-create dance internally even though the Glue REST endpoint doesn't officially support it.
+
 ### INSERT
 
 ```sql
@@ -409,6 +477,30 @@ DROP SCHEMA iceberg_catalog.my_namespace;
 
 ```sql
 DROP TABLE iceberg_catalog.default.my_table;
+```
+
+**Gotcha with Glue**: `DROP TABLE IF EXISTS` may throw an HTTP error when the table doesn't exist (instead of silently succeeding). Workaround — use the Glue and S3 APIs directly in Python:
+
+```python
+import boto3
+
+def drop_glue_table_if_exists(glue_db_name, table_name):
+    """Delete Glue table metadata, ignoring if missing."""
+    glue = boto3.client('glue')
+    try:
+        glue.delete_table(DatabaseName=glue_db_name, Name=table_name)
+    except glue.exceptions.EntityNotFoundException:
+        pass
+
+def delete_files_in_s3_path(s3_path):
+    """Delete all S3 objects under an Iceberg table path."""
+    s3 = boto3.resource('s3')
+    bucket_name, prefix = s3_path.replace("s3://", "").split("/", 1)
+    s3.Bucket(bucket_name).objects.filter(Prefix=prefix).delete()
+
+# Use before CREATE TABLE to make the workflow repeatable
+drop_glue_table_if_exists('my_db', 'my_table')
+delete_files_in_s3_path('s3://my-bucket/iceberg/my_table')
 ```
 
 ### COPY FROM DATABASE
@@ -570,9 +662,11 @@ Applied post-scan via expression evaluation. Only deletes with `sequence_number 
 - UPDATE and DELETE only work on **unpartitioned, unsorted** tables
 - Only positional deletes are written (copy-on-write not implemented)
 - Only merge-on-read semantics are supported
-- MERGE INTO is not supported
+- **MERGE INTO** is not supported (planned)
+- **CREATE OR REPLACE TABLE AS** is not supported (planned)
 - ALTER TABLE is not supported (schema evolution on write side)
-- Write operations require a catalog -- cannot write directly to files
+- Write operations require a catalog — cannot write directly to files
+- `DROP TABLE IF EXISTS` may error on Glue when table doesn't exist (use boto3 workaround above)
 
 ### General Limitations
 - Without a `version-hint.text` file, you must either specify the metadata file path directly or enable `unsafe_enable_version_guessing`
@@ -633,6 +727,9 @@ SET unsafe_enable_version_guessing = true;
 | UPDATE | Yes (unpartitioned only) | No |
 | DELETE | Yes (unpartitioned only) | No |
 | CREATE TABLE | Yes | No |
+| CREATE TABLE AS (CTAS) | Yes (v1.5+) | No |
+| CREATE OR REPLACE TABLE AS | No (planned) | No |
+| MERGE INTO | No (planned) | No |
 | DROP TABLE | Yes | No |
 | CREATE/DROP SCHEMA | Yes | No |
 | COPY FROM DATABASE | Yes | No |
