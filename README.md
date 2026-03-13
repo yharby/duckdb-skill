@@ -23,26 +23,181 @@ A comprehensive Claude Code skill for DuckDB v1.5 — spatial/GIS, GeoParquet, O
 
 ## Install
 
-### One-liner
+> **💡 About Agent Skills**: This skill follows the [AgentSkills.io](https://agentskills.io) open standard, making it compatible with **30+ AI coding tools** including Claude Code, Cursor, Windsurf, VS Code Copilot, GitHub Copilot, OpenAI Codex, and many more.
+
+### Quick Start (Universal)
+
+**For most AI coding tools** that support the AgentSkills.io standard:
+
+```bash
+# Clone the skill
+git clone https://github.com/yharby/duckdb-skill.git
+
+# Install to your preferred location:
+
+# Option 1: User-level (works across all projects)
+mkdir -p ~/.claude/skills && cp -r duckdb-skill ~/.claude/skills/
+# OR: mkdir -p ~/.agents/skills && cp -r duckdb-skill ~/.agents/skills/
+
+# Option 2: Project-level (specific to current project)
+mkdir -p .claude/skills && cp -r duckdb-skill .claude/skills/
+# OR: mkdir -p .agents/skills && cp -r duckdb-skill .agents/skills/
+```
+
+The skill activates automatically when you mention DuckDB, spatial queries, GeoParquet, Overture Maps, or related topics.
+
+**Update:**
+```bash
+cd ~/.claude/skills/duckdb-skill && git pull
+```
+
+### Platform-Specific Instructions
+
+<details>
+<summary><b>Claude Code</b></summary>
 
 ```bash
 git clone https://github.com/yharby/duckdb-skill.git ~/.claude/skills/duckdb-skill
 ```
 
-### Or step by step
+Or project-specific:
+```bash
+git clone https://github.com/yharby/duckdb-skill.git .claude/skills/duckdb-skill
+```
+
+**Update:** `cd ~/.claude/skills/duckdb-skill && git pull`
+
+📚 [Claude Code Skills Docs](https://code.claude.com/docs/en/skills)
+</details>
+
+<details>
+<summary><b>VS Code / GitHub Copilot</b></summary>
+
+**Supported locations:**
+- Project: `.github/skills/`, `.claude/skills/`, `.agents/skills/`
+- Personal: `~/.copilot/skills/`, `~/.claude/skills/`, `~/.agents/skills/`
+
+```bash
+# Clone the skill
+git clone https://github.com/yharby/duckdb-skill.git
+
+# Install (choose one):
+# Project-level
+mkdir -p .agents/skills && cp -r duckdb-skill .agents/skills/
+
+# User-level
+mkdir -p ~/.copilot/skills && cp -r duckdb-skill ~/.copilot/skills/
+```
+
+Access with `/duckdb-skill` or `/duckdb` in Copilot chat.
+
+📚 [VS Code Copilot Skills Docs](https://code.visualstudio.com/docs/copilot/customization/agent-skills)
+</details>
+
+<details>
+<summary><b>Cursor IDE</b></summary>
+
+**Using AgentSkills.io format** (recommended):
 
 ```bash
 git clone https://github.com/yharby/duckdb-skill.git
-cp -r duckdb-skill ~/.claude/skills/duckdb-skill
+
+# Project-level
+mkdir -p .claude/skills && cp -r duckdb-skill .claude/skills/
+# OR: mkdir -p .agents/skills && cp -r duckdb-skill .agents/skills/
+
+# User-level
+mkdir -p ~/.claude/skills && cp -r duckdb-skill ~/.claude/skills/
 ```
 
-### Update
+**Legacy Cursor rules** (alternative):
 
 ```bash
-cd ~/.claude/skills/duckdb-skill && git pull
+mkdir -p .cursor/rules
+ln -s "$(pwd)/duckdb-skill/SKILL.md" .cursor/rules/duckdb.md
 ```
 
-That's it. The skill activates automatically when you mention DuckDB, spatial queries, GeoParquet, Overture Maps, or related topics in Claude Code.
+📚 [Cursor Skills Docs](https://cursor.com/docs/context/skills) | [Setup Guide](https://www.heyuan110.com/posts/ai/2026-03-08-cursor-setup-guide/)
+</details>
+
+<details>
+<summary><b>Windsurf IDE</b></summary>
+
+**Using AgentSkills.io format** (recommended):
+
+```bash
+git clone https://github.com/yharby/duckdb-skill.git
+
+# Workspace-level
+mkdir -p .agents/skills && cp -r duckdb-skill .agents/skills/
+# OR: mkdir -p .claude/skills && cp -r duckdb-skill .claude/skills/
+
+# User-level
+mkdir -p ~/.agents/skills && cp -r duckdb-skill ~/.agents/skills/
+```
+
+**Legacy Windsurf rules** (has character limits):
+
+```bash
+mkdir -p .windsurf/rules
+cp duckdb-skill/SKILL.md .windsurf/rules/duckdb.md  # Note: 6K char limit per file
+```
+
+**Via UI:** Customizations icon → Rules panel → + Workspace
+
+📚 [Windsurf Setup](https://markaicode.com/windsurf-setup-first-week-productivity-tips/) | [Rules Guide](https://uibakery.io/blog/windsurf-ai-rules)
+</details>
+
+<details>
+<summary><b>OpenAI Codex</b></summary>
+
+**Supported locations:**
+- Repository: `.agents/skills`
+- User: `~/.agents/skills`
+
+```bash
+git clone https://github.com/yharby/duckdb-skill.git
+
+# Install
+mkdir -p ~/.agents/skills && cp -r duckdb-skill ~/.agents/skills/
+# OR project-level: mkdir -p .agents/skills && cp -r duckdb-skill .agents/skills/
+```
+
+Access with `$duckdb-skill` or let Codex select it automatically.
+
+📚 [OpenAI Codex Skills Docs](https://developers.openai.com/codex/skills/)
+</details>
+
+<details>
+<summary><b>Other Tools</b></summary>
+
+**AgentSkills.io compatible tools** (30+ total):
+
+Junie, Gemini CLI, Autohand Code, OpenCode, OpenHands, Mux, Amp, Letta, Firebender, Goose, Roo Code, Mistral Vibe, Command Code, Ona, VT Code, Qodo, Laravel Boost, Emdash, Snowflake Cortex, Databricks, and more.
+
+**Installation:**
+```bash
+git clone https://github.com/yharby/duckdb-skill.git
+
+# Standard locations (try in order):
+mkdir -p .agents/skills && cp -r duckdb-skill .agents/skills/
+mkdir -p .claude/skills && cp -r duckdb-skill .claude/skills/
+mkdir -p ~/.agents/skills && cp -r duckdb-skill ~/.agents/skills/
+```
+
+**Check your tool's docs** for skill installation instructions, or consult the [AgentSkills.io directory](https://agentskills.io/).
+
+📚 [AgentSkills.io](https://agentskills.io) | [Comparison](https://designrevision.com/blog/best-ai-for-coding)
+</details>
+
+### Verification
+
+After installation, test the skill by asking your AI assistant:
+- "Show me how to read a GeoParquet file with DuckDB"
+- "Help me query Overture Maps data"
+- "How do I use spatial joins in DuckDB?"
+
+The assistant should automatically use the DuckDB skill to provide detailed, accurate guidance.
 
 ## File Structure
 
