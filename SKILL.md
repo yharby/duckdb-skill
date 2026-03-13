@@ -522,24 +522,24 @@ Read these ONLY when the task requires the specific topic. Do not preload.
 - `refs/overture-maps.md` — Read when: working with **Overture Maps** data (places, buildings, roads — includes S3/Azure paths, bbox filtering, GeoParquet metadata inspection).
 
 **Spatial function deep-dives (read `refs/spatial/index.md` first for the function index, then drill in):**
-- `refs/spatial/creation.md` — ST_Point, ST_MakeLine, ST_MakePolygon, ST_MakeEnvelope, etc.
-- `refs/spatial/predicates.md` — ST_Intersects, ST_Contains, ST_Within, ST_DWithin, etc.
-- `refs/spatial/measurement.md` — ST_Distance, ST_Area, ST_Length, ST_Perimeter (all variants)
-- `refs/spatial/transforms.md` — ST_Transform, ST_Buffer, ST_Simplify, ST_Union, ST_Intersection, etc.
-- `refs/spatial/accessors.md` — ST_X/Y/Z/M, ST_GeometryType, ST_SRID, ST_NPoints, etc.
-- `refs/spatial/conversion-io.md` — WKT/WKB/GeoJSON conversion functions
-- `refs/spatial/aggregates.md` — ST_Union_Agg, ST_Collect, ST_Intersection_Agg, etc.
-- `refs/spatial/linear-ref.md` — ST_LineInterpolatePoint, ST_LineLocatePoint, M-coordinates
-- `refs/spatial/coverage-tiling.md` — ST_CoverageUnion, ST_AsMVT, ST_TileEnvelope, etc.
-- `refs/spatial/macros.md` — convenience macros
-- `refs/spatial/table-functions.md` — ST_Read, ST_ReadSHP, ST_Read_Meta, ST_Drivers
-- `refs/spatial/core-v15.md` — v1.5-specific geometry type details, shredding, stats
-- `refs/spatial/a5-s2.md` — A5 + S2/Geography extension functions
+- `refs/spatial/creation.md` — ST_Point, ST_Point2D, ST_Point3D, ST_Point4D, ST_MakePoint, ST_MakeLine, ST_MakePolygon, ST_MakeBox2D, ST_MakeEnvelope, ST_Collect, ST_Multi, ST_BuildArea
+- `refs/spatial/predicates.md` — ST_Intersects, ST_Intersects_Extent, ST_Contains, ST_ContainsProperly, ST_CoveredBy, ST_Covers, ST_Crosses, ST_DWithin, ST_DWithin_GEOS, ST_DWithin_Spheroid, ST_Disjoint, ST_Equals, ST_Overlaps, ST_Touches, ST_Within, ST_WithinProperly
+- `refs/spatial/measurement.md` — ST_Distance, ST_Distance_GEOS, ST_Distance_Sphere, ST_Distance_Spheroid, ST_Area, ST_Area_Spheroid, ST_Length, ST_Length_Spheroid, ST_Perimeter, ST_Perimeter_Spheroid, ST_Azimuth, ST_ShortestLine
+- `refs/spatial/transforms.md` — ST_Transform, ST_Buffer, ST_Simplify, ST_SimplifyPreserveTopology, ST_ReducePrecision, ST_RemoveRepeatedPoints, ST_Reverse, ST_FlipCoordinates, ST_Force2D, ST_Force3DM, ST_Force3DZ, ST_Force4D, ST_MakeValid, ST_Normalize, ST_Centroid, ST_ConvexHull, ST_ConcaveHull, ST_Envelope, ST_Boundary, ST_Difference, ST_Intersection, ST_Union, ST_Affine, ST_VoronoiDiagram, ST_MaximumInscribedCircle, ST_MinimumRotatedRectangle, ST_PointOnSurface, ST_Hilbert, ST_Node
+- `refs/spatial/accessors.md` — ST_X, ST_Y, ST_Z, ST_M, ST_HasM, ST_HasZ, ST_ZMFlag, ST_XMax, ST_XMin, ST_YMax, ST_YMin, ST_ZMax, ST_ZMin, ST_MMax, ST_MMin, ST_Dimension, ST_NGeometries, ST_NInteriorRings, ST_NPoints, ST_NumGeometries, ST_NumInteriorRings, ST_NumPoints, ST_ExteriorRing, ST_StartPoint, ST_EndPoint, ST_PointN, ST_Points, ST_IsClosed, ST_IsEmpty, ST_IsRing, ST_IsSimple, ST_IsValid, ST_Extent, ST_Extent_Approx, ST_Dump, ST_CollectionExtract, ST_Polygonize, ST_GeometryType
+- `refs/spatial/conversion-io.md` — ST_AsText, ST_AsWKB, ST_AsGeoJSON, ST_AsHEXWKB, ST_AsMVTGeom, ST_AsSVG, ST_GeomFromText, ST_GeomFromWKB, ST_GeomFromGeoJSON, ST_GeomFromHEXWKB, ST_GeomFromHEXEWKB
+- `refs/spatial/aggregates.md` — ST_Union_Agg, ST_MemUnion_Agg, ST_Extent_Agg, ST_Envelope_Agg, ST_Intersection_Agg, ST_AsMVT, ST_CoverageInvalidEdges_Agg, ST_CoverageSimplify_Agg, ST_CoverageUnion_Agg
+- `refs/spatial/linear-ref.md` — ST_LineInterpolatePoint, ST_LineInterpolatePoints, ST_LineLocatePoint, ST_LineMerge, ST_LineSubstring, ST_LocateAlong, ST_LocateBetween, ST_InterpolatePoint, ST_LineString2DFromWKB, ST_Polygon2DFromWKB, ST_Point2DFromWKB
+- `refs/spatial/coverage-tiling.md` — ST_CoverageUnion, ST_CoverageInvalidEdges, ST_CoverageSimplify, ST_TileEnvelope, ST_QuadKey
+- `refs/spatial/macros.md` — ST_Rotate, ST_RotateX, ST_RotateY, ST_RotateZ, ST_Scale, ST_TransScale, ST_Translate
+- `refs/spatial/table-functions.md` — ST_Read, ST_ReadOSM, ST_ReadSHP, ST_Read_Meta, ST_Drivers, ST_GeneratePoints
+- `refs/spatial/core-v15.md` — ST_GeomFromWKB, ST_CRS, ST_SetCRS (v1.5 built-in, no extension needed)
+- `refs/spatial/a5-s2.md` — A5: a5_lonlat_to_cell, a5_cell_to_lonlat, a5_cell_to_boundary, a5_cell_to_parent, a5_cell_to_children, a5_cell_area, a5_get_resolution, a5_get_num_cells, a5_get_res0_cells, a5_compact, a5_uncompact. S2/Geography: s2_area, s2_dimension, s2_distance, s2_dwithin, s2_is_valid, s2_is_valid_reason, s2_isempty, s2_length, s2_max_distance, s2_num_points, s2_perimeter, s2_x, s2_y, s2_bounds_box, s2_box, s2_box_intersects, s2_box_struct, s2_box_union, s2_box_wkb, s2_covering, s2_covering_fixed_level, s2_cellfromlonlat, s2_cellfromwkb, s2_arbitrarycellfromwkb, s2_cell_child, s2_cell_contains, s2_cell_edge_neighbor, s2_cell_from_token, s2_cell_intersects, s2_cell_level, s2_cell_parent, s2_cell_range_max, s2_cell_range_min, s2_cell_token, s2_cell_vertex, s2_astext, s2_aswkb, s2_format, s2_geogfromtext, s2_geogfromtext_novalidate, s2_geogfromwkb, s2_geogfromwkb_novalidate, s2_prepare, s2_contains, s2_equals, s2_intersects, s2_mayintersect, s2_difference, s2_intersection, s2_union, s2_data_city, s2_data_country, s2_data_cities, s2_data_countries
 
 **Spatial indexing and tiling:**
 - `refs/spatial-indexes.md` — Read when: comparing H3 vs A5 vs S2 vs QUADBIN to choose the right spatial index. Overview and comparison tables.
-- `refs/h3.md` — Read when: specifically working with H3 hexagonal grid (60+ functions, resolution guide, patterns).
-- `refs/a5.md` — Read when: working with A5 pentagonal grid (11 functions, 31 resolution levels, equal-area indexing).
+- `refs/h3.md` — h3_latlng_to_cell, h3_latlng_to_cell_string, h3_cell_to_lat, h3_cell_to_lng, h3_cell_to_latlng, h3_string_to_h3, h3_h3_to_string, h3_cell_to_parent, h3_cell_to_children, h3_cell_to_children_size, h3_cell_to_center_child, h3_cell_to_child_pos, h3_child_pos_to_cell, h3_get_resolution, h3_get_base_cell_number, h3_is_valid_cell, h3_is_pentagon, h3_is_res_class_iii, h3_get_icosahedron_faces, h3_grid_disk, h3_grid_disk_distances, h3_grid_disk_unsafe, h3_grid_ring, h3_grid_ring_unsafe, h3_grid_path_cells, h3_grid_distance, h3_max_grid_disk_size, h3_cell_to_boundary_wkt, h3_cell_to_boundary_wkb, h3_cells_to_multi_polygon_wkt, h3_cells_to_multi_polygon_wkb, h3_directed_edge_to_boundary_wkt, h3_directed_edge_to_boundary_wkb, h3_polygon_wkt_to_cells, h3_polygon_wkb_to_cells, h3_polygon_wkt_to_cells_string, h3_polygon_wkb_to_cells_string, h3_polygon_wkt_to_cells_experimental, h3_polygon_wkb_to_cells_experimental, h3_compact_cells, h3_uncompact_cells, h3_origin_to_directed_edges, h3_get_directed_edge_origin, h3_get_directed_edge_destination, h3_directed_edge_to_cells, h3_cells_to_directed_edge, h3_are_neighbor_cells, h3_is_valid_directed_edge, h3_cell_to_vertex, h3_cell_to_vertexes, h3_vertex_to_lat, h3_vertex_to_lng, h3_vertex_to_latlng, h3_is_valid_vertex, h3_cell_area, h3_edge_length, h3_great_circle_distance, h3_get_hexagon_area_avg, h3_get_hexagon_edge_length_avg, h3_get_num_cells, h3_get_res0_cells, h3_get_res0_cells_string, h3_get_pentagons, h3_get_pentagons_string
+- `refs/a5.md` — a5_lonlat_to_cell, a5_cell_to_lonlat, a5_cell_area, a5_cell_to_boundary, a5_cell_to_parent, a5_cell_to_children, a5_get_resolution, a5_get_num_cells, a5_get_res0_cells, a5_compact, a5_uncompact
 
 **Python API:**
 - `refs/python-api.md` — Read when: using DuckDB from Python, Arrow export, `fetch_arrow_table()` v1.5 bug, connection setup, GeoParquet writing, result fetching with geometry columns, v1.5 migration patterns.
