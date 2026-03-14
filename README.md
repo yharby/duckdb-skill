@@ -17,7 +17,7 @@ A comprehensive Agent Skill for DuckDB v1.5 — spatial/GIS, GeoParquet, Overtur
 - **DuckLake** — lakehouse setup, time travel, partitioning, ACID, spatial support
 - **H3 / A5 / S2** — hexagonal, pentagonal, and spherical spatial indexing
 - **Extensions** — FTS (BM25), VSS (HNSW vector search), GDAL formats, WASM patterns
-- **Raster** — RASTER type, RaQuet, Pyramid GeoParquet
+- **Raster** — RASTER type, RaQuet v0.5 (raster-in-Parquet), QUADBIN spatial index, tile statistics, raquet-io CLI (`uvx`), Pyramid GeoParquet
 - **VARIANT type** — semi-structured data with typed binary representation
 - **Python API** — connection patterns, Arrow export, v1.5 migration guide
 - **BigQuery connector** — query Google BigQuery from DuckDB, GEOGRAPHY/GEOMETRY mapping, authentication, incubating scan, performance tuning
@@ -229,7 +229,7 @@ duckdb-skill/
     ├── h3.md                   # H3 hexagonal indexing (60+ functions)
     ├── a5.md                   # A5 pentagonal indexing
     ├── spatial-indexes.md      # H3 vs A5 vs S2 vs QUADBIN comparison
-    ├── raster-tiling.md        # RASTER type, RaQuet, Pyramid GeoParquet
+    ├── raster-tiling.md        # RASTER type, RaQuet v0.5, QUADBIN, raquet-io CLI, Pyramid GeoParquet
     ├── fts.md                  # Full-text search (BM25)
     ├── vss.md                  # Vector similarity (HNSW)
     ├── wasm-patterns.md        # DuckDB-WASM browser patterns

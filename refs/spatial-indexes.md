@@ -22,13 +22,14 @@ Three community extensions provide spatial indexing in DuckDB. This page helps c
 | Neighbors | 6 (uniform) | 8 (non-uniform) | 8 (non-uniform) |
 | Area distortion | Minimal (icosahedron) | High at poles | High at poles |
 | Encoding | 64-bit integer | Variable-length string | 64-bit integer |
-| Best for | Analytics, equal-area | Tile serving, prefix queries | Tile serving, SQL range scans |
+| Best for | Analytics, equal-area | Tile serving, prefix queries | Raster tiling (RaQuet), SQL range scans, Parquet row group pruning |
 
 ## When to Use What
 
 - **H3** — Best for spatial aggregation and analytics. Hexagons have uniform neighbor distance. Largest ecosystem and tooling support. See `refs/h3.md` for 60+ functions.
 - **A5** — When you need mathematically exact equal-area cells (regulatory, environmental monitoring). OGC DGGS compliant. See `refs/a5.md` for all 11 functions.
 - **S2/Geography** — When you need actual spherical geometry operations (geodesic distance, area, boolean ops). Same library as BigQuery Geography. See `refs/spatial/a5-s2.md` for full S2 API.
+- **QUADBIN** — Best for raster tiling (RaQuet) and Web Mercator tile indexing. 64-bit Morton-order encoding enables efficient Parquet row group pruning. See `refs/raster-tiling.md` for full QUADBIN details, Python library, and RaQuet integration.
 
 ## Quick Setup
 

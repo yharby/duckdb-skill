@@ -58,6 +58,18 @@ This also silences the deprecation warning since `fetch_arrow_table()` is deprec
 
 **Upstream issue:** https://github.com/duckdb/duckdb-spatial/issues/768
 
+## Installing DuckDB for Python
+
+Prefer `uvx` to run Python scripts with DuckDB on-the-fly — no venv or global install needed:
+
+```bash
+# Run a script that uses duckdb (auto-installs in ephemeral cache)
+uvx --with duckdb python my_script.py
+
+# With extra dependencies (e.g., duckdb + pyarrow + geopandas)
+uvx --with duckdb --with pyarrow --with geopandas python my_analysis.py
+```
+
 ## Connection Setup
 
 ### Basic connection with spatial

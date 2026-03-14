@@ -550,7 +550,7 @@ Read these ONLY when the task requires the specific topic. Do not preload.
 
 **Specialized topics:**
 - `refs/ducklake.md` — Read when: working with DuckLake lakehouse (setup, time travel, partitioning, ACID, spatial support, VARIANT).
-- `refs/raster-tiling.md` — Read when: working with raster data, RASTER type, RT_* functions, RaQuet, Pyramid GeoParquet.
+- `refs/raster-tiling.md` — Read when: working with raster data, RASTER type, RT_* functions, RaQuet (raster-in-Parquet), QUADBIN spatial indexing, converting GeoTIFF/COG/NetCDF to RaQuet, tile statistics, raquet-io CLI, Pyramid GeoParquet.
 - `refs/fts.md` — Read when: implementing full-text search (BM25 index creation, match_bm25 queries, stemming).
 - `refs/vss.md` — Read when: working with vector embeddings and similarity search (HNSW indexes, distance metrics).
 - `refs/wasm-patterns.md` — Read when: targeting DuckDB-WASM in the browser (extension loading, geocoding, MVT generation).
