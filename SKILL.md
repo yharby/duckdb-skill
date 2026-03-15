@@ -1,6 +1,6 @@
 ---
 name: duckdb
-description: DuckDB v1.5 spatial/GIS analytics: geospatial SQL, file conversions, raster analysis. Geographic data (Shapefile, GeoJSON, GeoPackage, OSM), spatial ops (distance, area, joins, intersections), CRS/EPSG transforms, H3/A5/S2 indexing, raster (RASTER, RT_*, RaQuet), GeoParquet (Pyramid, Format 2.11+), QUADBIN, core GEOMETRY with CRS, VARIANT, DuckLake, Overture Maps (places, buildings, roads), Iceberg tables/catalogs (iceberg_scan), vector similarity (vss), BM25/FTS. General: Parquet/CSV/JSON, httpfs, ODBC, read_duckdb(), friendly SQL (FROM-first, GROUP BY ALL, lambda), geocoding (H3 tiling, JACCARD), external DBs. Use for DuckDB, spatial SQL, GeoParquet, geometry, CRS, H3/A5/S2, Overture, Iceberg, vector search, BM25, or geospatial analytics.
+description: "DuckDB v1.5 spatial/GIS analytics: geospatial SQL, file conversions, raster analysis. Geographic data (Shapefile, GeoJSON, GeoPackage, OSM), spatial ops (distance, area, joins, intersections), CRS/EPSG transforms, H3/A5/S2 indexing, raster (RASTER, RT_*, RaQuet), GeoParquet (Pyramid, Format 2.11+), QUADBIN, core GEOMETRY with CRS, VARIANT, DuckLake, Overture Maps (places, buildings, roads), Iceberg tables/catalogs (iceberg_scan), vector similarity (vss), BM25/FTS. General: Parquet/CSV/JSON, httpfs, ODBC, read_duckdb(), friendly SQL (FROM-first, GROUP BY ALL, lambda), geocoding (H3 tiling, JACCARD), external DBs. Use for DuckDB, spatial SQL, GeoParquet, geometry, CRS, H3/A5/S2, Overture, Iceberg, vector search, BM25, or geospatial analytics."
 ---
 
 # DuckDB v1.5 Skill
