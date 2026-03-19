@@ -36,12 +36,12 @@ The easiest way to install in Claude Code. Add a marketplace, then install with 
 
 Run inside Claude Code:
 ```
-/plugin marketplace add https://github.com/yharby/duckdb-skill
+/plugin marketplace add yharby/duckdb-skill
 ```
 
 **Step 2: Install the plugin**
 ```
-/plugin install duckdb-skill
+/plugin install duckdb-skill@duckdb-plugins
 ```
 
 That's it! The plugin is now active with:
@@ -51,7 +51,7 @@ That's it! The plugin is now active with:
 
 **Update:**
 ```
-/plugin update duckdb-skill
+/plugin marketplace update duckdb-plugins
 ```
 
 > Works on **macOS, Linux, and Windows**. The hook uses Node.js (guaranteed by Claude Code) for cross-platform support. Install suggestions are platform-aware (brew/winget/scoop/apt).
