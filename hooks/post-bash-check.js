@@ -28,7 +28,7 @@ process.stdin.on("end", () => {
     if (isMac) {
       console.log("DuckDB CLI not found. Install with: brew install duckdb");
     } else if (isWin) {
-      console.log("DuckDB CLI not found. Install with: winget install DuckDB.cli  OR  scoop install duckdb");
+      console.log("DuckDB CLI not found. Install with: winget install -e --id DuckDB.cli -v \"1.5.0\"  OR  scoop install duckdb");
     } else {
       console.log("DuckDB CLI not found. Install from: https://duckdb.org/docs/installation/");
     }

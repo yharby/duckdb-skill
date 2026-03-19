@@ -230,8 +230,8 @@ When installed as a Claude Code plugin, you get extra features beyond the base s
 
 | Error | Suggestion |
 |-------|-----------|
-| `duckdb: command not found` | `brew install duckdb` (macOS) / `winget install DuckDB.cli` (Windows) |
-| `duckdb is not recognized` | `winget install DuckDB.cli OR scoop install duckdb` (Windows) |
+| `duckdb: command not found` | `brew install duckdb` (macOS) / `winget install -e --id DuckDB.cli -v "1.5.0"` (Windows) |
+| `duckdb is not recognized` | `winget install -e --id DuckDB.cli -v "1.5.0"` or `scoop install duckdb` (Windows) |
 | `No module named 'duckdb'` | `pip install duckdb` or `uvx --with duckdb python script.py` |
 | `Catalog Error: ST_Intersects does not exist` | `INSTALL spatial; LOAD spatial;` |
 | `Extension ... not found` | `FORCE INSTALL extension_name FROM core_nightly;` |
