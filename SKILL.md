@@ -1,6 +1,6 @@
 ---
 name: duckdb
-description: "DuckDB v1.5 spatial/GIS analytics: geospatial SQL, file conversions, raster analysis. Geographic data (Shapefile, GeoJSON, GeoPackage, OSM), spatial ops (distance, area, joins, intersections), CRS/EPSG transforms, H3/A5/S2 indexing, raster (RASTER, RT_*, RaQuet), GeoParquet (Pyramid, Format 2.11+), QUADBIN, core GEOMETRY with CRS, VARIANT, DuckLake, Overture Maps (places, buildings, roads), Iceberg tables/catalogs (iceberg_scan), vector similarity (vss), BM25/FTS. General: Parquet/CSV/JSON, httpfs, ODBC, read_duckdb(), friendly SQL (FROM-first, GROUP BY ALL, lambda), geocoding (H3 tiling, JACCARD), external DBs. Use for DuckDB, spatial SQL, GeoParquet, geometry, CRS, H3/A5/S2, Overture, Iceberg, vector search, BM25, or geospatial analytics."
+description: "DuckDB v1.5 spatial/GIS analytics with 155+ ST_* functions. Use this skill for DuckDB, spatial queries, GeoParquet, geometry data, or geospatial analytics. Workflow: Discovery → Understanding → Analysis (Phase 1: glob/DESCRIBE/ST_Read_Meta, Phase 2: SUMMARIZE/parquet_metadata/CRS detection, Phase 3: targeted queries). Query profiling with EXPLAIN ANALYZE for troubleshooting. Spatial: CRS/EPSG transforms, automatic R-Tree indexes, distance/area calculations, spatial joins, H3/A5/S2 indexing, QUADBIN tiling, geometry shredding (3x compression), core GEOMETRY type (no extension), GeoParquet (v1/v2/BOTH), GDAL formats (Shapefile, GeoJSON, GeoPackage, FlatGeobuf, OSM). Data sources: Overture Maps (6 themes), DuckLake lakehouse, Apache Iceberg (REST catalogs, time travel), BigQuery connector, raster (RaQuet, raquet-io CLI), VARIANT type. Also: BM25/FTS, HNSW vector search, friendly SQL, Python API, v1.5 breaking changes, common pitfalls."
 ---
 
 # DuckDB v1.5 Skill
@@ -299,6 +299,10 @@ These trip up anyone using pre-v1.5 patterns:
 | Mixing CRS in spatial operations | v1.5 errors at bind time. Use consistent CRS or strip with `::GEOMETRY` |
 | `.fetch_arrow_table()` with parquet geometry | Use `.arrow().read_all()` — crashes with `TransactionContext` error (see `refs/python-api.md`) |
 | `TRY_CAST(x AS GEOMETRY)` | `TRY(ST_GeomFromText(x))` — TRY_CAST broken for GEOMETRY in v1.5 |
+| `ST_Read('f.fgb', spatial_filter_box=...)` | Removed in v1.5 — use `WHERE geom && ST_MakeBox2D(...)` instead (auto-pushed down) |
+| `ST_Read(..., sequential_layer_scan=true)` | Removed in v1.5 — auto-applied for OSM format |
+| `register_geoarrow_extensions()` in Python | No longer needed — GEOMETRY defaults to GeoArrow in Arrow export |
+| Invalid HEXWKB silently accepted | v1.5 now throws proper error on invalid HEXWKB input |
 
 ## Core GEOMETRY Type (no extension needed)
 
@@ -357,7 +361,12 @@ SELECT a.*, b.*
 FROM table_a a JOIN table_b b ON ST_DWithin(a.geom, b.geom, 1000);
 ```
 
-Predicates that trigger SPATIAL_JOIN: `ST_Intersects`, `ST_Contains`, `ST_ContainsProperly`, `ST_Within`, `ST_Covers`, `ST_CoveredBy`, `ST_Overlaps`, `ST_Touches`, `ST_Crosses`, `ST_DWithin`.
+Predicates that trigger SPATIAL_JOIN: `ST_Intersects`, `ST_Contains`, `ST_ContainsProperly`, `ST_Within`, `ST_Covers`, `ST_CoveredBy`, `ST_Overlaps`, `ST_Touches`, `ST_Crosses`, `ST_DWithin`, `&&` / `ST_Intersects_Extent`.
+
+**Spatial join gotchas:**
+- R-Tree indexes created with `CREATE INDEX ... USING RTREE` are for `WHERE` filter scans only — they are NOT used for `JOIN ... ON ST_Intersects()`. The spatial join optimizer builds its own internal R-tree. They are independent features.
+- For very small build sides, block-nested-loop may outperform the spatial join optimizer. DuckDB's vectorized constant-vector optimization is very fast for small tables.
+- Spatial operations do NOT spill to disk — OOM can occur with large spatial pipelines. Monitor memory usage.
 
 ### CRS Transform
 
@@ -402,8 +411,10 @@ COPY (SELECT * FROM tbl ORDER BY ST_Hilbert(geom)) TO 'sorted.parquet' (FORMAT P
 ```sql
 -- Populate table FIRST, then create index (bulk load is 10x+ faster)
 CREATE INDEX idx ON tbl USING RTREE (geom);
--- Auto-used with spatial predicates
+-- Auto-used with WHERE spatial predicates (NOT with JOIN — see spatial join notes above)
 ```
+
+**Note:** R-Tree index scans can be skipped if the table also has a PRIMARY KEY or other index type. If spatial filtering seems slow on a table with a PK, verify with `EXPLAIN ANALYZE`.
 
 ## Friendly SQL Quick Reference
 
@@ -509,9 +520,15 @@ SELECT data.name FROM tbl;             -- dot notation
 | `INSTALL spatial` for GEOMETRY columns | Not needed in v1.5 — GEOMETRY is core |
 | `NOT ST_Intersects(a, b)` in JOINs | Causes OOM — use `NOT EXISTS (SELECT 1 ... WHERE ST_Intersects(...))` |
 | `ST_Transform` without `ST_SetCRS` | Output has no CRS metadata — always set CRS on input first |
-| FlatGeobuf WHERE ST_Intersects | Doesn't use FGB spatial index — use `ST_Read('f.fgb', spatial_filter_box=...)` |
+| FlatGeobuf WHERE ST_Intersects | Use `WHERE geom && ST_MakeBox2D(...)` — bbox auto-pushed to GDAL, then predicate evaluated |
 | Large geometries in GeoParquet | Default row group too big → full file download — use `ROW_GROUP_SIZE 2500` |
 | `ST_DWithin_Spheroid` in JOINs | No SPATIAL_JOIN optimization — use `ST_DWithin` instead |
+| `ST_Intersection_Agg(geom)` without ORDER BY | Result depends on processing order (not associative) — use `ST_Intersection_Agg(geom ORDER BY id)` |
+| `ST_AsEWKB` / `ST_AsEWKT` | Don't exist — DuckDB stores SRID at column/type level, not per-geometry value |
+| COPY multiple layers to same GPKG | File gets overwritten — only one layer per COPY. Use FileGDB for multi-layer export |
+| Large GDAL exports to S3 | Fails with "Unknown part number" — export locally first, then upload |
+| `ST_Read_Meta` on Parquet files | Crashes — Parquet is handled by the parquet extension, not GDAL/spatial. Use `parquet_kv_metadata()` |
+| KML export with `SRS 'EPSG:4326'` | GDAL axis order issue — coordinates may be swapped. Set `geometry_always_xy = true` first |
 
 ## Reference Files — Load on Demand
 
@@ -524,9 +541,9 @@ Read these ONLY when the task requires the specific topic. Do not preload.
 **Spatial function deep-dives (read `refs/spatial/index.md` first for the function index, then drill in):**
 - `refs/spatial/creation.md` — ST_Point, ST_Point2D, ST_Point3D, ST_Point4D, ST_MakePoint, ST_MakeLine, ST_MakePolygon, ST_MakeBox2D, ST_MakeEnvelope, ST_Collect, ST_Multi, ST_BuildArea
 - `refs/spatial/predicates.md` — ST_Intersects, ST_Intersects_Extent, ST_Contains, ST_ContainsProperly, ST_CoveredBy, ST_Covers, ST_Crosses, ST_DWithin, ST_DWithin_GEOS, ST_DWithin_Spheroid, ST_Disjoint, ST_Equals, ST_Overlaps, ST_Touches, ST_Within, ST_WithinProperly
-- `refs/spatial/measurement.md` — ST_Distance, ST_Distance_GEOS, ST_Distance_Sphere, ST_Distance_Spheroid, ST_Area, ST_Area_Spheroid, ST_Length, ST_Length_Spheroid, ST_Perimeter, ST_Perimeter_Spheroid, ST_Azimuth, ST_ShortestLine
+- `refs/spatial/measurement.md` — ST_Distance, ST_Distance_GEOS, ST_Distance_Sphere, ST_Distance_Spheroid, ST_Area, ST_Area_Spheroid, ST_Length, ST_Length_Spheroid, ST_Perimeter, ST_Perimeter_Spheroid, ST_Azimuth, ST_ClosestPoint, ST_ShortestLine
 - `refs/spatial/transforms.md` — ST_Transform, ST_Buffer, ST_Simplify, ST_SimplifyPreserveTopology, ST_ReducePrecision, ST_RemoveRepeatedPoints, ST_Reverse, ST_FlipCoordinates, ST_Force2D, ST_Force3DM, ST_Force3DZ, ST_Force4D, ST_MakeValid, ST_Normalize, ST_Centroid, ST_ConvexHull, ST_ConcaveHull, ST_Envelope, ST_Boundary, ST_Difference, ST_Intersection, ST_Union, ST_Affine, ST_VoronoiDiagram, ST_MaximumInscribedCircle, ST_MinimumRotatedRectangle, ST_PointOnSurface, ST_Hilbert, ST_Node
-- `refs/spatial/accessors.md` — ST_X, ST_Y, ST_Z, ST_M, ST_HasM, ST_HasZ, ST_ZMFlag, ST_XMax, ST_XMin, ST_YMax, ST_YMin, ST_ZMax, ST_ZMin, ST_MMax, ST_MMin, ST_Dimension, ST_NGeometries, ST_NInteriorRings, ST_NPoints, ST_NumGeometries, ST_NumInteriorRings, ST_NumPoints, ST_ExteriorRing, ST_StartPoint, ST_EndPoint, ST_PointN, ST_Points, ST_IsClosed, ST_IsEmpty, ST_IsRing, ST_IsSimple, ST_IsValid, ST_Extent, ST_Extent_Approx, ST_Dump, ST_CollectionExtract, ST_Polygonize, ST_GeometryType
+- `refs/spatial/accessors.md` — ST_X, ST_Y, ST_Z, ST_M, ST_HasM, ST_HasZ, ST_ZMFlag, ST_XMax, ST_XMin, ST_YMax, ST_YMin, ST_ZMax, ST_ZMin, ST_MMax, ST_MMin, ST_Dimension, ST_NGeometries, ST_NInteriorRings, ST_NPoints, ST_NumGeometries, ST_NumInteriorRings, ST_NumPoints, ST_ExteriorRing, ST_InteriorRingN, ST_StartPoint, ST_EndPoint, ST_PointN, ST_Points, ST_IsClosed, ST_IsEmpty, ST_IsRing, ST_IsSimple, ST_IsValid, ST_Extent, ST_Extent_Approx, ST_Dump, ST_CollectionExtract, ST_Polygonize, ST_GeometryType
 - `refs/spatial/conversion-io.md` — ST_AsText, ST_AsWKB, ST_AsGeoJSON, ST_AsHEXWKB, ST_AsMVTGeom, ST_AsSVG, ST_GeomFromText, ST_GeomFromWKB, ST_GeomFromGeoJSON, ST_GeomFromHEXWKB, ST_GeomFromHEXEWKB
 - `refs/spatial/aggregates.md` — ST_Union_Agg, ST_MemUnion_Agg, ST_Extent_Agg, ST_Envelope_Agg, ST_Intersection_Agg, ST_AsMVT, ST_CoverageInvalidEdges_Agg, ST_CoverageSimplify_Agg, ST_CoverageUnion_Agg
 - `refs/spatial/linear-ref.md` — ST_LineInterpolatePoint, ST_LineInterpolatePoints, ST_LineLocatePoint, ST_LineMerge, ST_LineSubstring, ST_LocateAlong, ST_LocateBetween, ST_InterpolatePoint, ST_LineString2DFromWKB, ST_Polygon2DFromWKB, ST_Point2DFromWKB

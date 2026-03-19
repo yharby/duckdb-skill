@@ -14,6 +14,8 @@ SELECT short_name, long_name FROM ST_Drivers();
 
 The most versatile open format — supports multiple layers, CRS, attributes, and large datasets.
 
+> **Limitation:** Writing multiple layers to the same GPKG file via separate `COPY` statements is not supported — the file gets overwritten each time. For multi-layer output, use FileGDB (OpenFileGDB driver) instead.
+
 ### Read
 
 ```sql
@@ -183,6 +185,14 @@ COPY (SELECT *, ST_AsText(geom) AS wkt FROM tbl) TO 'output.csv' (HEADER);
 | `GEOMETRY_TYPE` | Required for some drivers | `'POLYGON'`, `'POINT'` |
 | `LAYER_CREATION_OPTIONS` | Driver-specific options | `'WRITE_BBOX=YES'` |
 | `CREATION_OPTIONS` | Dataset-level options | Driver-dependent |
+
+## Known Limitations
+
+- **Large GDAL exports to S3** fail with "Unknown part number" error. Export locally first, then upload.
+- **Non-UTF-8 Shapefiles** (e.g., `ENCODING=CP932` for Japanese) may fail on macOS due to missing iconv support in GDAL.
+- **KML export with `SRS 'EPSG:4326'`** may swap coordinates due to GDAL axis order. Always `SET geometry_always_xy = true` before export.
+- **`ST_Read_Meta` on `/vsi*` paths** (e.g., `/vsizip/`, `/vsicurl/`) may return 0 rows — the MultiFileReader doesn't understand GDAL virtual filesystem prefixes.
+- **v1.5**: `COPY TO (FORMAT GDAL)` now uses Arrow internally, making exports significantly faster than previous versions.
 
 ## Format Comparison
 

@@ -146,7 +146,12 @@ GEOMETRY ST_Intersection_Agg (col0 GEOMETRY)
 
 #### Description
 
-Computes the intersection of a set of geometries
+Computes the intersection of a set of geometries.
+
+> **Important:** Intersection is processed sequentially ("one by one") and is **not associative** — the result depends on processing order. Use `ORDER BY` in the aggregate to get deterministic results:
+> ```sql
+> SELECT ST_Intersection_Agg(geom ORDER BY id) FROM my_table;
+> ```
 
 ----
 

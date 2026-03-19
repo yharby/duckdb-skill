@@ -242,6 +242,22 @@ SELECT degrees(ST_Azimuth(ST_Point(0, 0), ST_Point(0, 1)));
 
 ----
 
+### ST_ClosestPoint
+
+#### Signature
+
+```sql
+GEOMETRY ST_ClosestPoint (geom1 GEOMETRY, geom2 GEOMETRY)
+```
+
+#### Description
+
+Returns the point on geom1 that is closest to geom2. This is the first point of the shortest line between the two geometries.
+
+> **New in v1.5.**
+
+----
+
 ### ST_ShortestLine
 
 #### Signature
