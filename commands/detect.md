@@ -20,7 +20,7 @@ Check the current environment for DuckDB-related tools. Run the following detect
 | Tool | macOS | Linux | Windows |
 |------|-------|-------|---------|
 | DuckDB CLI | `brew install duckdb` | Download from duckdb.org | `winget install -e --id DuckDB.cli -v "1.5.0"` or `scoop install duckdb` |
-| uv/uvx | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | Same curl command | `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
+| uv/uvx | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | Same curl command | `winget install -e --id astral-sh.uv` |
 | Python duckdb | `pip install duckdb` | `pip install duckdb` | `pip install duckdb` |
 
 **Recommendations based on results:**
