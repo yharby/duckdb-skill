@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node hooks/post-bash-check.js"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/post-bash-check.js\" 2>/dev/null || true"
           }
         ]
       }

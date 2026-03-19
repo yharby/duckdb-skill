@@ -4,34 +4,18 @@ description: Detect DuckDB CLI, uv/uvx, and Python duckdb availability in the cu
 
 # Environment Detection
 
-Check the current environment for DuckDB-related tools. First detect the platform, then run the appropriate commands.
+Check the current environment for DuckDB-related tools. Run the following detection commands. Each is independent — run them **in parallel** and handle failures gracefully (use `|| echo "NOT_FOUND"`).
 
-**Step 1: Detect platform** — run `node -e "console.log(process.platform)"` to get the OS.
+**Detection commands** (work on macOS, Linux, AND Windows Git Bash):
 
-**Step 2: Run detection commands** (all independent — run in parallel):
+1. `duckdb --version 2>/dev/null || echo "NOT_FOUND"` — DuckDB CLI on PATH
+2. `uv --version 2>/dev/null || echo "NOT_FOUND"` — uv package manager
+3. `uvx --version 2>/dev/null || echo "NOT_FOUND"` — uvx runner
+4. `python3 -c "import duckdb; print('Python duckdb:', duckdb.__version__)" 2>/dev/null || python -c "import duckdb; print('Python duckdb:', duckdb.__version__)" 2>/dev/null || echo "NOT_FOUND"` — Python duckdb package
 
-For **macOS/Linux** (`darwin` or `linux`):
-1. `command -v duckdb && duckdb --version` — DuckDB CLI
-2. `command -v uv && uv --version` — uv package manager
-3. `command -v uvx && uvx --version` — uvx runner
-4. `python3 -c "import duckdb; print('Python duckdb:', duckdb.__version__)"` — Python duckdb package
+**Report a summary table** with status, version, and install command for each tool.
 
-For **Windows** (`win32`):
-1. `where duckdb 2>nul && duckdb --version` — DuckDB CLI
-2. `where uv 2>nul && uv --version` — uv package manager
-3. `where uvx 2>nul && uvx --version` — uvx runner
-4. `python -c "import duckdb; print('Python duckdb:', duckdb.__version__)"` — Python duckdb package (note: `python` not `python3` on Windows)
-
-**Step 3: Report summary table:**
-
-| Tool | Status | Version | Install Command |
-|------|--------|---------|-----------------|
-| DuckDB CLI | ... | ... | see below |
-| uv | ... | ... | see below |
-| uvx | ... | ... | Included with uv |
-| Python duckdb | ... | ... | see below |
-
-**Platform-specific install commands:**
+**Platform-specific install commands** (detect via the OS field in the environment info, or `uname -s 2>/dev/null`):
 
 | Tool | macOS | Linux | Windows |
 |------|-------|-------|---------|
@@ -46,3 +30,4 @@ For **Windows** (`win32`):
 - If Python duckdb is missing but uv is available: `uvx --with duckdb python -c "import duckdb; print(duckdb.__version__)"`
 - If Python duckdb version differs from CLI version: Warn about potential compatibility issues
 - If DuckDB version < 1.5.0: Warn that this skill targets v1.5+ and some features may not work
+- If DuckDB is found locally (e.g., `./duckdb`) but not on PATH: Note it and suggest adding to PATH
