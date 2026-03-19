@@ -1,0 +1,11 @@
+{
+  "name": "duckdb-skill",
+  "description": "DuckDB v1.5 spatial/GIS analytics — 155+ ST_* functions, GeoParquet, GDAL formats, Overture Maps, Iceberg, DuckLake, H3/A5/S2, raster, FTS, vector search. Auto-detects DuckDB CLI, uv/uvx, and Python environment.",
+  "version": "1.5.0",
+  "author": {
+    "name": "Youssef Harby"
+  },
+  "repository": "https://github.com/yharby/duckdb-skill",
+  "license": "MIT",
+  "homepage": "https://github.com/yharby/duckdb-skill"
+}

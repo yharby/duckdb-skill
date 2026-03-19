@@ -2,6 +2,8 @@
 
 A comprehensive Agent Skill for DuckDB v1.5 — spatial/GIS, GeoParquet, Overture Maps, DuckLake, and more.
 
+**Also a Claude Code plugin** with auto-detection hooks, environment checks, and error suggestions.
+
 **Compatible with 30+ AI coding tools** via the [AgentSkills.io](https://agentskills.io) open standard.
 
 ## What's Included
@@ -26,52 +28,70 @@ A comprehensive Agent Skill for DuckDB v1.5 — spatial/GIS, GeoParquet, Overtur
 
 ## Install
 
-> **💡 About Agent Skills**: This skill follows the [AgentSkills.io](https://agentskills.io) open standard, making it compatible with **30+ AI coding tools** including Claude Code, Cursor, Windsurf, VS Code Copilot, GitHub Copilot, OpenAI Codex, and many more.
+### Claude Code Plugin (Recommended)
 
-### Quick Start (Universal)
+The easiest way to install in Claude Code. Add a marketplace, then install with one command.
 
-**For most AI coding tools** that support the AgentSkills.io standard:
+**Step 1: Add the marketplace** (one-time setup)
 
-```bash
-# Clone the skill
-git clone https://github.com/yharby/duckdb-skill.git
-
-# Install to your preferred location:
-
-# Option 1: User-level (works across all projects)
-mkdir -p ~/.claude/skills && cp -r duckdb-skill ~/.claude/skills/
-# OR: mkdir -p ~/.agents/skills && cp -r duckdb-skill ~/.agents/skills/
-
-# Option 2: Project-level (specific to current project)
-mkdir -p .claude/skills && cp -r duckdb-skill .claude/skills/
-# OR: mkdir -p .agents/skills && cp -r duckdb-skill .agents/skills/
+Run inside Claude Code:
+```
+/plugin marketplace add https://github.com/yharby/duckdb-skill
 ```
 
-The skill activates automatically when you mention DuckDB, spatial queries, GeoParquet, Overture Maps, or related topics.
+**Step 2: Install the plugin**
+```
+/plugin install duckdb-skill
+```
+
+That's it! The plugin is now active with:
+- `/duckdb-skill:detect` — check your environment (DuckDB CLI, uv/uvx, Python duckdb)
+- **Auto error detection** — hook suggests fixes when DuckDB commands fail (missing CLI, spatial extension, CRS mismatch)
+- **Pre-configured permissions** — DuckDB, uv/uvx commands are pre-allowed
 
 **Update:**
-```bash
-cd ~/.claude/skills/duckdb-skill && git pull
+```
+/plugin update duckdb-skill
 ```
 
-### Platform-Specific Instructions
+> Works on **macOS, Linux, and Windows**. The hook uses Node.js (guaranteed by Claude Code) for cross-platform support. Install suggestions are platform-aware (brew/winget/scoop/apt).
 
 <details>
-<summary><b>Claude Code</b></summary>
+<summary><b>Alternative: Install as local plugin (no marketplace)</b></summary>
 
 ```bash
-git clone https://github.com/yharby/duckdb-skill.git ~/.claude/skills/duckdb-skill
+git clone https://github.com/yharby/duckdb-skill.git
+claude --plugin-dir ./duckdb-skill
 ```
 
-Or project-specific:
+Or load it every session:
 ```bash
+# Add to your shell profile (.bashrc, .zshrc, etc.)
+alias claude='claude --plugin-dir /path/to/duckdb-skill'
+```
+
+</details>
+
+<details>
+<summary><b>Alternative: Install as standalone skill (legacy)</b></summary>
+
+```bash
+# User-level (works across all projects)
+git clone https://github.com/yharby/duckdb-skill.git ~/.claude/skills/duckdb-skill
+
+# Or project-level (specific to current project)
 git clone https://github.com/yharby/duckdb-skill.git .claude/skills/duckdb-skill
 ```
 
 **Update:** `cd ~/.claude/skills/duckdb-skill && git pull`
 
-📚 [Claude Code Skills Docs](https://code.claude.com/docs/en/skills)
+> Note: Standalone skill mode does not include hooks or the `/duckdb-skill:detect` command.
+
 </details>
+
+### Other AI Coding Tools
+
+> This skill follows the [AgentSkills.io](https://agentskills.io) open standard, making it compatible with **30+ AI coding tools** including Cursor, Windsurf, VS Code Copilot, GitHub Copilot, OpenAI Codex, and many more.
 
 <details>
 <summary><b>VS Code / GitHub Copilot</b></summary>
@@ -93,8 +113,6 @@ mkdir -p ~/.copilot/skills && cp -r duckdb-skill ~/.copilot/skills/
 ```
 
 Access with `/duckdb-skill` or `/duckdb` in Copilot chat.
-
-📚 [VS Code Copilot Skills Docs](https://code.visualstudio.com/docs/copilot/customization/agent-skills)
 </details>
 
 <details>
@@ -119,8 +137,6 @@ mkdir -p ~/.claude/skills && cp -r duckdb-skill ~/.claude/skills/
 mkdir -p .cursor/rules
 ln -s "$(pwd)/duckdb-skill/SKILL.md" .cursor/rules/duckdb.md
 ```
-
-📚 [Cursor Skills Docs](https://cursor.com/docs/context/skills) | [Setup Guide](https://www.heyuan110.com/posts/ai/2026-03-08-cursor-setup-guide/)
 </details>
 
 <details>
@@ -145,10 +161,6 @@ mkdir -p ~/.agents/skills && cp -r duckdb-skill ~/.agents/skills/
 mkdir -p .windsurf/rules
 cp duckdb-skill/SKILL.md .windsurf/rules/duckdb.md  # Note: 6K char limit per file
 ```
-
-**Via UI:** Customizations icon → Rules panel → + Workspace
-
-📚 [Windsurf Setup](https://markaicode.com/windsurf-setup-first-week-productivity-tips/) | [Rules Guide](https://uibakery.io/blog/windsurf-ai-rules)
 </details>
 
 <details>
@@ -167,14 +179,12 @@ mkdir -p ~/.agents/skills && cp -r duckdb-skill ~/.agents/skills/
 ```
 
 Access with `$duckdb-skill` or let Codex select it automatically.
-
-📚 [OpenAI Codex Skills Docs](https://developers.openai.com/codex/skills/)
 </details>
 
 <details>
-<summary><b>Other Tools</b></summary>
+<summary><b>Other Tools (30+)</b></summary>
 
-**AgentSkills.io compatible tools** (30+ total):
+**AgentSkills.io compatible tools:**
 
 Junie, Gemini CLI, Autohand Code, OpenCode, OpenHands, Mux, Amp, Letta, Firebender, Goose, Roo Code, Mistral Vibe, Command Code, Ona, VT Code, Qodo, Laravel Boost, Emdash, Snowflake Cortex, Databricks, and more.
 
@@ -189,8 +199,6 @@ mkdir -p ~/.agents/skills && cp -r duckdb-skill ~/.agents/skills/
 ```
 
 **Check your tool's docs** for skill installation instructions, or consult the [AgentSkills.io directory](https://agentskills.io/).
-
-📚 [AgentSkills.io](https://agentskills.io) | [Comparison](https://designrevision.com/blog/best-ai-for-coding)
 </details>
 
 ### Verification
@@ -202,10 +210,49 @@ After installation, test the skill by asking your AI assistant:
 
 The assistant should automatically use the DuckDB skill to provide detailed, accurate guidance.
 
+**Claude Code plugin users** can also run:
+```
+/duckdb-skill:detect
+```
+to verify DuckDB CLI, uv/uvx, and Python duckdb are available on their system.
+
+## Plugin Features (Claude Code only)
+
+When installed as a Claude Code plugin, you get extra features beyond the base skill:
+
+| Feature | What it does |
+|---------|-------------|
+| `/duckdb-skill:detect` | Checks DuckDB CLI, uv, uvx, Python duckdb — reports versions and platform-specific install commands |
+| **Error detection hook** | Automatically suggests fixes when Bash commands fail with DuckDB-related errors |
+| **Pre-configured permissions** | `duckdb`, `uvx`, `uv`, and detection commands are pre-allowed |
+
+**Error detection examples** (fires automatically on failed commands):
+
+| Error | Suggestion |
+|-------|-----------|
+| `duckdb: command not found` | `brew install duckdb` (macOS) / `winget install DuckDB.cli` (Windows) |
+| `duckdb is not recognized` | `winget install DuckDB.cli OR scoop install duckdb` (Windows) |
+| `No module named 'duckdb'` | `pip install duckdb` or `uvx --with duckdb python script.py` |
+| `Catalog Error: ST_Intersects does not exist` | `INSTALL spatial; LOAD spatial;` |
+| `Extension ... not found` | `FORCE INSTALL extension_name FROM core_nightly;` |
+| `CRS mismatch` | `Strip CRS with ::GEOMETRY or use ST_Transform` |
+| `geometry_always_xy` | `SET geometry_always_xy = true;` |
+
 ## File Structure
 
 ```
 duckdb-skill/
+├── .claude-plugin/
+│   └── plugin.json              # Plugin manifest (Claude Code)
+├── skills/duckdb/
+│   ├── SKILL.md -> ../../SKILL.md   # Symlink for plugin skill loading
+│   └── refs -> ../../refs           # Symlink for ref file access
+├── commands/
+│   └── detect.md               # /duckdb-skill:detect command
+├── hooks/
+│   ├── hooks.json              # PostToolUse hook config
+│   └── post-bash-check.js      # Cross-platform error detection (Node.js)
+├── settings.json               # Default permissions
 ├── SKILL.md                    # Main skill (loaded when triggered)
 └── refs/                       # Deep-dive references (loaded on demand)
     ├── spatial/                # 155+ ST_* functions split by category

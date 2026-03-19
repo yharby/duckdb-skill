@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(duckdb:*)",
+      "Bash(uvx --with duckdb*)",
+      "Bash(uvx raquet-io:*)",
+      "Bash(command -v duckdb*)",
+      "Bash(command -v uv*)",
+      "Bash(where duckdb*)",
+      "Bash(where uv*)",
+      "Bash(uv --version*)",
+      "Bash(python3 -c \"import duckdb*)",
+      "Bash(python -c \"import duckdb*)",
+      "Bash(node -e*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch"
+    ]
+  }
+}
